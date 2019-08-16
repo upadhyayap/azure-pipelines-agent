@@ -98,6 +98,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
         public bool Version => TestFlag(Constants.Agent.CommandLine.Flags.Version);
         public bool DeploymentGroup => TestFlag(Constants.Agent.CommandLine.Flags.MachineGroup) || TestFlag(Constants.Agent.CommandLine.Flags.DeploymentGroup);
         public bool DeploymentPool => TestFlag(Constants.Agent.CommandLine.Flags.DeploymentPool);
+        public bool EnvironmentVMResource => TestFlag(Constants.Agent.CommandLine.Flags.Environments);
         public bool WhatIf => TestFlag(Constants.Agent.CommandLine.Flags.WhatIf);
 #if OS_WINDOWS
         public bool GitUseSChannel => TestFlag(Constants.Agent.CommandLine.Flags.GitUseSChannel);
@@ -357,6 +358,22 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
                 return GetArgOrPrompt(
                     name: Constants.Agent.CommandLine.Args.DeploymentGroupTags,
                     description: StringUtil.Loc("DeploymentGroupTags"),
+                    defaultValue: string.Empty,
+                    validator: Validators.NonEmptyValidator);
+            }
+            return result;
+        }
+
+        // Environments
+
+        public string GetEnvironmentName()
+        {
+            var result = GetArg(Constants.Agent.CommandLine.Args.EnvironmentName);
+            if (string.IsNullOrEmpty(result))
+            {
+                return GetArgOrPrompt(
+                    name: Constants.Agent.CommandLine.Args.EnvironmentName,
+                    description: StringUtil.Loc("EnvironmentName"),
                     defaultValue: string.Empty,
                     validator: Validators.NonEmptyValidator);
             }

@@ -115,15 +115,14 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
         }
     }
 
-    public sealed class DeploymentGroupAgentConfigProvider : AgentService, IConfigurationProvider
+    public class DeploymentGroupAgentConfigProvider : AgentService, IConfigurationProvider
     {
         public Type ExtensionType => typeof(IConfigurationProvider);
-        private ITerminal _term;
-        private string _projectName = string.Empty;
-        private IDeploymentGroupServer _deploymentGroupServer = null;
-
         public string ConfigurationProviderType
             => Constants.Agent.AgentConfigurationProvider.DeploymentAgentConfiguration;
+        protected ITerminal _term;
+        protected string _projectName = string.Empty;
+        private IDeploymentGroupServer _deploymentGroupServer = null;
 
         public override void Initialize(IHostContext hostContext)
         {
@@ -148,7 +147,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             }
         }
 
-        public async Task GetPoolIdAndName(AgentSettings agentSettings, CommandSettings command)
+        public virtual async Task GetPoolIdAndName(AgentSettings agentSettings, CommandSettings command)
         {
             _projectName = command.GetProjectName(_projectName);
             var deploymentGroupName = command.GetDeploymentGroupName();
@@ -163,9 +162,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             agentSettings.ProjectId = deploymentGroup.Project.Id.ToString();
         }
 
-        public string GetFailedToFindPoolErrorString() => StringUtil.Loc("FailedToFindDeploymentGroup");
+        public virtual string GetFailedToFindPoolErrorString() => StringUtil.Loc("FailedToFindDeploymentGroup");
 
-        public void ThrowTaskAgentExistException(AgentSettings agentSettings)
+        public virtual void ThrowTaskAgentExistException(AgentSettings agentSettings)
         {
             throw new TaskAgentExistsException(StringUtil.Loc("DeploymentMachineWithSameNameAlreadyExistInDeploymentGroup", agentSettings.DeploymentGroupId, agentSettings.AgentName));
         }
@@ -181,7 +180,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             return deploymentMachine.Agent;
         }
 
-        public async Task<TaskAgent> AddAgentAsync(AgentSettings agentSettings, TaskAgent agent, CommandSettings command)
+        public virtual async Task<TaskAgent> AddAgentAsync(AgentSettings agentSettings, TaskAgent agent, CommandSettings command)
         {
             var deploymentMachine = new DeploymentMachine() { Agent = agent };
             var azureSubscriptionId = await GetAzureSubscriptionIdAsync();
@@ -196,7 +195,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             return deploymentMachine.Agent;
         }
 
-        public async Task DeleteAgentAsync(AgentSettings agentSettings)
+        public virtual async Task DeleteAgentAsync(AgentSettings agentSettings)
         {
             var machines = await GetDeploymentTargetsAsync(agentSettings);
             Trace.Verbose("Returns {0} machines with name {1}", machines.Count, agentSettings.AgentName);
@@ -214,7 +213,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             }
         }
 
-        public async Task TestConnectionAsync(AgentSettings agentSettings, VssCredentials creds, bool isHosted)
+        public virtual async Task TestConnectionAsync(AgentSettings agentSettings, VssCredentials creds, bool isHosted)
         {
             var url = agentSettings.ServerUrl;  // Ensure not to update back the url with agentSettings !!!
             _term.WriteLine(StringUtil.Loc("ConnectingToServer"));
@@ -234,7 +233,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             Trace.Info("Connect complete for deployment group");
         }
 
-        public async Task<TaskAgent> GetAgentAsync(AgentSettings agentSettings)
+        public virtual async Task<TaskAgent> GetAgentAsync(AgentSettings agentSettings)
         {
             var machines = await GetDeploymentTargetsAsync(agentSettings);
             Trace.Verbose("Returns {0} machines", machines.Count);
@@ -365,6 +364,133 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
                 agentSettings.PoolId = agentPool.Id;
                 agentSettings.PoolName = agentPool.Name;
             }
+        }
+    }
+
+    public class EnvironmentVMResourceConfigProvider : DeploymentGroupAgentConfigProvider, IConfigurationProvider
+    {
+        public new string ConfigurationProviderType
+            => Constants.Agent.AgentConfigurationProvider.EnvironmentVMResourceConfiguration;
+        private IEnvironmentsServer _environmentsServer = null;
+
+        public override void Initialize(IHostContext hostContext)
+        {
+            base.Initialize(hostContext);
+            _environmentsServer = HostContext.GetService<IEnvironmentsServer>();
+        }
+
+        public override async Task TestConnectionAsync(AgentSettings agentSettings, VssCredentials creds, bool isHosted)
+        {
+            var url = agentSettings.ServerUrl;  // Ensure not to update back the url with agentSettings !!!
+            _term.WriteLine(StringUtil.Loc("ConnectingToServer"));
+
+            // Create the connection for deployment group 
+            Trace.Info("Test connection with environment");
+            if (!isHosted && !string.IsNullOrWhiteSpace(agentSettings.CollectionName)) // For on-prm validate the collection by making the connection
+            {
+                UriBuilder uriBuilder = new UriBuilder(new Uri(url));
+                uriBuilder.Path = uriBuilder.Path + "/" + agentSettings.CollectionName;
+                Trace.Info("Tfs Collection level url to connect - {0}", uriBuilder.Uri.AbsoluteUri);
+                url = uriBuilder.Uri.AbsoluteUri;
+            }
+            VssConnection environmentConnection = VssUtil.CreateConnection(new Uri(url), creds);
+
+            await _environmentsServer.ConnectAsync(environmentConnection);
+            Trace.Info("Connect complete for environment");
+        }
+
+        public override async Task GetPoolIdAndName(AgentSettings agentSettings, CommandSettings command)
+        {
+            _projectName = command.GetProjectName(_projectName);
+            var environmentName = command.GetEnvironmentName();
+
+            var environmentInstance = await GetEnvironmentAsync(_projectName, environmentName);
+
+            //agentSettings.PoolId = environmentInstance.Pool.Id;
+            //agentSettings.PoolName = deploymentGroup.Pool.Name;
+            agentSettings.EnvironmentId = environmentInstance.Id;
+            agentSettings.ProjectName = _projectName;
+
+            // ToDo Correct this
+            agentSettings.ProjectId = Guid.NewGuid().ToString();
+        }
+
+        public override string GetFailedToFindPoolErrorString() => StringUtil.Loc("FailedToFindEnvironment");
+
+        public override void ThrowTaskAgentExistException(AgentSettings agentSettings)
+        {
+            throw new TaskAgentExistsException(StringUtil.Loc("VMResourceWithSameNameAlreadyExistInEnvironment", agentSettings.EnvironmentId, agentSettings.AgentName));
+        }
+
+        public override async Task<TaskAgent> AddAgentAsync(AgentSettings agentSettings, TaskAgent agent, CommandSettings command)
+        {
+            var virtualMachine = new VirtualMachineResource() { Agent = agent };
+
+            virtualMachine = await _environmentsServer.AddEnvironmentVMAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId, virtualMachine);
+
+            return virtualMachine.Agent;
+        }
+
+        public override async Task DeleteAgentAsync(AgentSettings agentSettings)
+        {
+            var vmResources = await GetEnvironmentVMsAsync(agentSettings);
+            Trace.Verbose("Returns {0} vm resources with name {1}", vmResources.Count, agentSettings.AgentName);
+
+            var vmResource = vmResources.FirstOrDefault();
+            if (vmResource != null)
+            {
+                if (!string.IsNullOrWhiteSpace(agentSettings.ProjectId))
+                {
+                    await _environmentsServer.DeleteEnvironmentVMAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId, vmResource.Id);
+                }
+                else
+                {
+                    await _environmentsServer.DeleteEnvironmentVMAsync(agentSettings.ProjectName, agentSettings.EnvironmentId, vmResource.Id);
+                }
+            }
+        }
+
+        public override async Task<TaskAgent> GetAgentAsync(AgentSettings agentSettings)
+        {
+            var vmResources = await GetEnvironmentVMsAsync(agentSettings);
+            Trace.Verbose("Returns {0} machines", vmResources.Count);
+            var machine = vmResources.FirstOrDefault();
+            if (machine != null)
+            {
+                return machine.Agent;
+            }
+
+            return null;
+        }
+
+        private async Task<EnvironmentInstance> GetEnvironmentAsync(string projectName, string environmentName)
+        {
+            ArgUtil.NotNull(_environmentsServer, nameof(_environmentsServer));
+
+            var environment = (await _environmentsServer.GetEnvironmentsAsync(projectName, environmentName)).FirstOrDefault();
+
+            if (environment == null)
+            {
+                throw new EnvironmentNotFoundException(StringUtil.Loc("EnvironmentNotFound", environmentName));
+            }
+
+            Trace.Info("Found environment {0} with id {1}", environmentName, environment.Id);
+            return environment;
+        }
+
+        private async Task<List<VirtualMachineResource>> GetEnvironmentVMsAsync(AgentSettings agentSettings)
+        {
+            List<VirtualMachineResource> machines;
+            if (!string.IsNullOrWhiteSpace(agentSettings.ProjectId))
+            {
+                machines = await _environmentsServer.GetEnvironmentVMsAsyncAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId, agentSettings.AgentName);
+            }
+            else
+            {
+                machines = await _environmentsServer.GetEnvironmentVMsAsyncAsync(agentSettings.ProjectName, agentSettings.EnvironmentId, agentSettings.AgentName);
+            }
+
+            return machines;
         }
     }
 }

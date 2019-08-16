@@ -181,6 +181,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             {
                 agentType = Constants.Agent.AgentConfigurationProvider.SharedDeploymentAgentConfiguration;
             }
+            else if (command.EnvironmentVMResource)
+            {
+                agentType = Constants.Agent.AgentConfigurationProvider.EnvironmentVMResourceConfiguration;
+            }
             else
             {
                 agentType = Constants.Agent.AgentConfigurationProvider.BuildReleasesAgentConfiguration;
