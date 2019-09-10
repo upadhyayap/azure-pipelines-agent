@@ -58,6 +58,8 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
             Constants.Agent.CommandLine.Args.DeploymentGroupName,
             Constants.Agent.CommandLine.Args.DeploymentPoolName,
             Constants.Agent.CommandLine.Args.DeploymentGroupTags,
+            Constants.Agent.CommandLine.Args.EnvironmentName,
+            Constants.Agent.CommandLine.Args.EnvironmentVMResourceTags,
             Constants.Agent.CommandLine.Args.MachineGroupName,
             Constants.Agent.CommandLine.Args.MachineGroupTags,
             Constants.Agent.CommandLine.Args.Matrix,
@@ -227,16 +229,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
                            name: Constants.Agent.CommandLine.Flags.AddDeploymentGroupTags,
                            description: StringUtil.Loc("AddDeploymentGroupTagsFlagDescription"),
                            defaultValue: false);
-        }
-
-        public bool GetEnvironmentVirtualMachineResourceTagsRequired()
-        {
-            return TestFlag(Constants.Agent.CommandLine.Flags.AddMachineGroupTags)
-                   || TestFlagOrPrompt(
-                           name: Constants.Agent.CommandLine.Flags.AddDeploymentGroupTags,
-                           description: StringUtil.Loc("AddDeploymentGroupTagsFlagDescription"),
-                           defaultValue: false);
-        }
+        }        
 
         public bool GetAutoLaunchBrowser()
         {
@@ -384,6 +377,29 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
                 return GetArgOrPrompt(
                     name: Constants.Agent.CommandLine.Args.EnvironmentName,
                     description: StringUtil.Loc("EnvironmentName"),
+                    defaultValue: string.Empty,
+                    validator: Validators.NonEmptyValidator);
+            }
+            return result;
+        }
+
+        public bool GetEnvironmentVirtualMachineResourceTagsRequired()
+        {
+            return TestFlag(Constants.Agent.CommandLine.Flags.AddMachineGroupTags)
+                   || TestFlagOrPrompt(
+                           name: Constants.Agent.CommandLine.Flags.AddDeploymentGroupTags,
+                           description: StringUtil.Loc("AddDeploymentGroupTagsFlagDescription"),
+                           defaultValue: false);
+        }
+        
+        public string GetEnvironmentVirtualMachineResourceTags()
+        {
+            var result = GetArg(Constants.Agent.CommandLine.Args.EnvironmentVMResourceTags);
+            if (string.IsNullOrEmpty(result))
+            {
+                return GetArgOrPrompt(
+                    name: Constants.Agent.CommandLine.Args.EnvironmentVMResourceTags,
+                    description: StringUtil.Loc("EnvironmentVMResourceTags"),
                     defaultValue: string.Empty,
                     validator: Validators.NonEmptyValidator);
             }

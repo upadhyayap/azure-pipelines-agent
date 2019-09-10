@@ -169,7 +169,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             throw new TaskAgentExistsException(StringUtil.Loc("DeploymentMachineWithSameNameAlreadyExistInDeploymentGroup", agentSettings.DeploymentGroupId, agentSettings.AgentName));
         }
 
-        public async Task<TaskAgent> UpdateAgentAsync(AgentSettings agentSettings, TaskAgent agent, CommandSettings command)
+        public virtual async Task<TaskAgent> UpdateAgentAsync(AgentSettings agentSettings, TaskAgent agent, CommandSettings command)
         {
             var deploymentMachine = (await this.GetDeploymentTargetsAsync(agentSettings)).FirstOrDefault();
 
@@ -427,7 +427,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             virtualMachine = await _environmentsServer.AddEnvironmentVMAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId, virtualMachine);
 
             var pool =  await _environmentsServer.GetEnvironmentPoolAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId);
+            
             agentSettings.PoolId = pool.Id;
+            agentSettings.AgentName = virtualMachine.Name;
 
             return virtualMachine.Agent;
         }
@@ -439,8 +441,8 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             bool needToAddTags = command.GetEnvironmentVirtualMachineResourceTagsRequired();
             if (needToAddTags)
             {
-                string tagString = command.GetDeploymentGroupTags();
-                Trace.Info("Given tags - {0} will be processed and added", tagString);
+                string tagString = command.GetEnvironmentVirtualMachineResourceTags();
+                Trace.Info("Given tags - {0} will be processed and added to environment vm resource", tagString);
 
                 if (!string.IsNullOrWhiteSpace(tagString))
                 {
@@ -477,7 +479,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
         public override async Task<TaskAgent> GetAgentAsync(AgentSettings agentSettings)
         {
             var vmResources = await GetEnvironmentVMsAsync(agentSettings);
-            Trace.Verbose("Returns {0} machines", vmResources.Count);
+            Trace.Verbose("Returns {0} virtual machine resources", vmResources.Count);
             var machine = vmResources.FirstOrDefault();
             if (machine != null)
             {
@@ -485,6 +487,23 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             }
 
             return null;
+        }
+
+        public override async Task<TaskAgent> UpdateAgentAsync(AgentSettings agentSettings, TaskAgent agent, CommandSettings command)
+        {
+            var tags = GetVirtualMachineResourceTags(command);
+
+            var vmResource = (await GetEnvironmentVMsAsync(agentSettings)).First();
+
+            vmResource.Agent = agent;
+            vmResource.Tags = tags;
+            vmResource = await _environmentsServer.ReplaceEnvironmentVMAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId, vmResource);
+
+            var pool =  await _environmentsServer.GetEnvironmentPoolAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId);
+
+            agentSettings.AgentName = vmResource.Name;
+            agentSettings.PoolId = pool.Id;            
+            return vmResource.Agent;
         }
 
         private async Task<EnvironmentInstance> GetEnvironmentAsync(string projectName, string environmentName)

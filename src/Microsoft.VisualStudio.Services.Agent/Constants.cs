@@ -105,6 +105,7 @@ namespace Microsoft.VisualStudio.Services.Agent
                     public static readonly string DeploymentPoolName = "deploymentpoolname";
                     public static readonly string DeploymentGroupTags = "deploymentgrouptags";
                     public static readonly string EnvironmentName = "environmentname";
+                    public static readonly string EnvironmentVMResourceTags = "environmentVMResourceTags";
                     public static readonly string MachineGroupName = "machinegroupname";
                     public static readonly string MachineGroupTags = "machinegrouptags";
                     public static readonly string Matrix = "matrix";
