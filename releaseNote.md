@@ -1,13 +1,12 @@
 ## Features
-  - Pipeline Caching CacheBeta 1.0 agent changes #2358
-  
+  - Update environmetserver to use vm resource client api's (#2433)
+  - Adding check and show error message in on-prem scenario  (#2425)
+
 ## Bugs
-  - Getting the latest successful build instead of latest in DPA #2350
-  - Pass through parameters to listener #2353 
-  - Use ArtifactHttpClientFactory to generate dedupStoreClient that includes ArtifactHttpRetryHandler #2357
+  - Fix missing job source for pipeline artifacts (#2427)
 
 ## Misc
-  - Use Azure Artifacts for nugetvssprivate #2359
+  - Changing vss-api-netcore version to 0.5.131-private (#2428)
 
 ## Agent Downloads  
 
