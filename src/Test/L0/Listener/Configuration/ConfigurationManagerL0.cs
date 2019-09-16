@@ -526,9 +526,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Listener.Configuration
         public async Task CanEnsureEnvironmentVMResourceConfigureVSTSScenario()
         {
             SetEnvironmentVMResourceMocks();
+            var projectId = Guid.NewGuid();
 
             using (TestHostContext tc = CreateTestContext())
-            {
+            {                
                 Tracing trace = tc.GetTrace();
 
                 trace.Info("Creating config manager");
@@ -559,7 +560,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Listener.Configuration
                 _configMgrAgentSettings = null;
 
                 _extnMgr.Setup(x => x.GetExtensions<IConfigurationProvider>()).Returns(GetConfigurationProviderList(tc));
-                _environmentsServer.Setup(x => x.GetEnvironmentsAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(GetEnvironments()));
+                _environmentsServer.Setup(x => x.GetEnvironmentsAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.FromResult(GetEnvironments("environmentPrj", projectId)));
 
                 trace.Info("Ensuring all the required parameters are available in the command line parameter");
                 await configManager.ConfigureAsync(command);
@@ -572,19 +573,21 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Listener.Configuration
                 Assert.True(s.ServerUrl.Equals(_expectedVSTSServerUrl, StringComparison.CurrentCultureIgnoreCase));
                 Assert.True(s.AgentName.Equals("environmentVMResourceName"));
                 Assert.True(s.AgentId.Equals(35));
-                //Assert.True(s.PoolId.Equals(27));
+                Assert.True(s.PoolId.Equals(57));
                 Assert.True(s.WorkFolder.Equals(_expectedWorkFolder));
                 Assert.True(s.MachineGroupId.Equals(0));
                 Assert.True(s.DeploymentGroupId.Equals(0));
                 Assert.True(s.EnvironmentId.Equals(54));
                 Assert.True(s.ProjectName.Equals("environmentPrj"));
-                //Assert.True(s.ProjectId.Equals(_expectedProjectId));
+                Assert.True(s.ProjectId.Equals(projectId.ToString()));
+                Assert.True(s.EnvironmentVMResourceId.Equals(_expectedEnvironmentVMResourceId));
 
                 // Validate mock calls
                 _environmentsServer.Verify( x => x.ConnectAsync(It.IsAny<VssConnection>()), Times.Once);
                 _environmentsServer.Verify(x => x.AddEnvironmentVMAsync(It.IsAny<Guid>(), It.Is<int>(e => e == 54 ), It.Is<VirtualMachineResource>( v => v.Agent.Name == "environmentVMResourceName")), Times.Once);
-                _environmentsServer.Verify(x => x.GetEnvironmentVMsAsyncAsync(It.IsAny<Guid>(), It.Is<int>(e => e == 54), It.Is<string>( v => v == "environmentVMResourceName")), Times.Once);
+                _environmentsServer.Verify(x => x.GetEnvironmentVMsAsync(It.IsAny<Guid>(), It.Is<int>(e => e == 54), It.Is<string>( v => v == "environmentVMResourceName")), Times.Once);
                 _environmentsServer.Verify(x => x.GetEnvironmentsAsync(It.IsAny<string>(), It.Is<string>( e => e == "env1")), Times.Once);
+                _environmentsServer.Verify(x => x.GetEnvironmentPoolAsync(It.Is<Guid>( p => p == projectId ), It.Is<int>( e => e == 54)), Times.Once);
             }
         }
 
@@ -598,13 +601,19 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Listener.Configuration
                 AuthorizationUrl = new Uri("http://localhost:8080/tfs"),
             };
 
-            var expectedEnvironmentVMResource = new VirtualMachineResource { Agent = expectedAgent, Id = _expectedEnvironmentVMResourceId };
+            var environmentPool = new TaskAgentPoolReference
+            {
+                Id = 57
+            };
+
+            var expectedEnvironmentVMResource = new VirtualMachineResource { Agent = expectedAgent, Id = _expectedEnvironmentVMResourceId, Name = "environmentVMResourceName" };
 
             _environmentsServer.Setup(x => x.ConnectAsync(It.IsAny<VssConnection>())).Returns(Task.FromResult<object>(null));
             _environmentsServer.Setup(x => x.AddEnvironmentVMAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<VirtualMachineResource>())).Returns(Task.FromResult(expectedEnvironmentVMResource));
             _environmentsServer.Setup(x => x.ReplaceEnvironmentVMAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<VirtualMachineResource>())).Returns(Task.FromResult(expectedEnvironmentVMResource));
-            _environmentsServer.Setup(x => x.GetEnvironmentVMsAsyncAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<string>())).Returns(Task.FromResult(new List<VirtualMachineResource>() { }));
+            _environmentsServer.Setup(x => x.GetEnvironmentVMsAsync(It.IsAny<Guid>(), It.IsAny<int>(), It.IsAny<string>())).Returns(Task.FromResult(new List<VirtualMachineResource>() { }));
             _environmentsServer.Setup(x => x.DeleteEnvironmentVMAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>())).Returns(Task.FromResult<object>(null));
+            _environmentsServer.Setup(x => x.GetEnvironmentPoolAsync(It.IsAny<Guid>(), It.IsAny<int>())).Returns(Task.FromResult(environmentPool));
         }
 
         private List<DeploymentGroup> GetDeploymentGroups(int dgId, int poolId)
@@ -614,10 +623,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Listener.Configuration
             return new List<DeploymentGroup>() { deploymentGroup };
         }
 
-        private List<EnvironmentInstance> GetEnvironments()
+        private List<EnvironmentInstance> GetEnvironments(string projectName, Guid projectId)
         {
-            var env = new EnvironmentInstance { Name = "env1", Id = 54 };
-
+            var environmentJson = "{'id':54, 'project':{'id':'" + projectId + "','name':'" + projectName  +"'},'name':'env1'}";
+            var env = JsonConvert.DeserializeObject<EnvironmentInstance>(environmentJson);
+            
             return new List<EnvironmentInstance>{ env };
         }
 

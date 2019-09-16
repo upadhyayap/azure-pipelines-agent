@@ -82,7 +82,7 @@ namespace Microsoft.VisualStudio.Services.Agent
 
         public Task DeleteEnvironmentVMAsync(string projectName, int environmentId, int virtualMachineId)
         {
-            CheckConnection();
+            CheckConnection();            
             return _environmentsHttpClient.DeleteVirtualMachineResourceAsync(projectName, environmentId, virtualMachineId);
         }
 

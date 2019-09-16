@@ -433,6 +433,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             Trace.Info("environment pool id: '{0}'", pool.Id);
             agentSettings.PoolId = pool.Id;
             agentSettings.AgentName = virtualMachine.Name;
+            agentSettings.EnvironmentVMResourceId = virtualMachine.Id;
 
             return virtualMachine.Agent;
         }
@@ -462,23 +463,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
 
         public override async Task DeleteAgentAsync(AgentSettings agentSettings)
         {
-            var vmResources = await GetEnvironmentVMsAsync(agentSettings);
-            Trace.Verbose("Returns {0} vm resources with name {1}", vmResources.Count, agentSettings.AgentName);
-
-            var vmResource = vmResources.FirstOrDefault();
-            if (vmResource != null)
+            Trace.Info("Deleting environment virtual machine resource with id: '{0}'", agentSettings.EnvironmentVMResourceId);
+            if (!string.IsNullOrWhiteSpace(agentSettings.ProjectId))
             {
-                Trace.Info("Deleting environment virtual machine resource with id: '{0}'", vmResource.Id);
-                if (!string.IsNullOrWhiteSpace(agentSettings.ProjectId))
-                {
-                    await _environmentsServer.DeleteEnvironmentVMAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId, vmResource.Id);
-                }
-                else
-                {
-                    await _environmentsServer.DeleteEnvironmentVMAsync(agentSettings.ProjectName, agentSettings.EnvironmentId, vmResource.Id);
-                }
-                Trace.Info("Environment virtual machine resource with id: '{0}' has been successfully deleted.", vmResource.Id);
+                await _environmentsServer.DeleteEnvironmentVMAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId, agentSettings.EnvironmentVMResourceId);
             }
+            else
+            {
+                await _environmentsServer.DeleteEnvironmentVMAsync(agentSettings.ProjectName, agentSettings.EnvironmentId, agentSettings.EnvironmentVMResourceId);
+            }
+            Trace.Info("Environment virtual machine resource with id: '{0}' has been successfully deleted.", agentSettings.EnvironmentVMResourceId);
         }
 
         public override async Task<TaskAgent> GetAgentAsync(AgentSettings agentSettings)
@@ -508,7 +502,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener.Configuration
             var pool =  await _environmentsServer.GetEnvironmentPoolAsync(new Guid(agentSettings.ProjectId), agentSettings.EnvironmentId);
 
             agentSettings.AgentName = vmResource.Name;
-            agentSettings.PoolId = pool.Id;            
+            agentSettings.EnvironmentVMResourceId = vmResource.Id;    
+            agentSettings.PoolId = pool.Id;
+
             return vmResource.Agent;
         }
 
