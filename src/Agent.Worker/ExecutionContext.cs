@@ -410,6 +410,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
 
             // JobSettings
             JobSettings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            JobSettings[WellKnownJobSettings.JobId] = message.JobId.ToString();
             JobSettings[WellKnownJobSettings.HasMultipleCheckouts] = message.Steps?.Where(x => Pipelines.PipelineConstants.IsCheckoutTask(x)).Count() > 1 ? Boolean.TrueString : Boolean.FalseString;
 
             // Variables (constructor performs initial recursive expansion)

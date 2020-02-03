@@ -54,13 +54,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 string repositoryPath = data.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 repository.Properties.Set<string>(RepositoryPropertyNames.Path, repositoryPath);
 
-                if (RepositoryUtil.IsPrimaryRepositoryName(repository.Alias))
+                bool isSelfRepo = RepositoryUtil.IsPrimaryRepositoryName(repository.Alias);
+                bool hasMultipleCheckouts = RepositoryUtil.HasMultipleCheckouts(context.JobSettings);
+
+                if (isSelfRepo || !hasMultipleCheckouts)
                 {
                     var directoryManager = context.GetHostContext().GetService<IBuildDirectoryManager>();
                     string _workDirectory = context.GetHostContext().GetDirectory(WellKnownDirectory.Work);
 
                     var trackingConfig = directoryManager.UpdateDirectory(context, repository);
-                    if (RepositoryUtil.HasMultipleCheckouts(context.JobSettings))
+                    if (hasMultipleCheckouts)
                     {
                         // In Multi-checkout, we don't want to reset sources dir or default working dir.
                         // So, we will just reset the repo local path

@@ -29,6 +29,7 @@ namespace Agent.Sdk
     public class WellKnownJobSettings
     {
         public static readonly string HasMultipleCheckouts = "HasMultipleCheckouts";
+        public static readonly string JobId = "JobId";
     }
 
     public class AgentTaskPluginExecutionContext : ITraceWriter
