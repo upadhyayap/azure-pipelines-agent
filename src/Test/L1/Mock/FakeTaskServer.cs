@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.TeamFoundation.DistributedTask.WebApi;
@@ -16,16 +17,24 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 
         public Task<Stream> GetTaskContentZipAsync(Guid taskId, TaskVersion taskVersion, CancellationToken token)
         {
-            String baseDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-            String taskZipsPath = Path.Join(baseDirectory, "TaskZips");
+            // Path to unzipped folders in externals
+            String taskPath = Path.Join(HostContext.GetDirectory(WellKnownDirectory.Externals), "Tasks", taskId.ToString());
 
-            foreach (String zip in Directory.GetFiles(taskZipsPath))
+            // Zip the folder into the working directory
+            String taskZipsPath = Path.Join(HostContext.GetDirectory(WellKnownDirectory.Work), "taskzips");
+            String zip = Path.Join(taskZipsPath, taskId.ToString() + ".zip");
+            if (Directory.Exists(taskPath) && !File.Exists(zip))
             {
-                String zipName = Path.GetFileNameWithoutExtension(zip);
-                if (zipName.Equals(taskId.ToString()))
+                if (!Directory.Exists(taskZipsPath))
                 {
-                    return Task.FromResult<Stream>(new FileStream(zip, FileMode.Open));
+                    Directory.CreateDirectory(taskZipsPath);
                 }
+                ZipFile.CreateFromDirectory(taskPath, zip);
+            }
+
+            if (File.Exists(zip))
+            {
+                return Task.FromResult<Stream>(new FileStream(zip, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             }
 
             return Task.FromResult<Stream>(null);
