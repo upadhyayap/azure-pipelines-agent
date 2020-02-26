@@ -22,7 +22,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
             // Add variable setting tasks
             message.Steps.Add(CreateScriptTask("echo \"##vso[task.setvariable variable=testVar]b\""));
             message.Steps.Add(CreateScriptTask("echo TestVar=$(testVar)"));
-            message.Variables.Add("testVar", "a");
+            message.Variables.Add("testVar", new VariableValue("a", false, false));
 
             // Act
             var results = await RunWorker(message);

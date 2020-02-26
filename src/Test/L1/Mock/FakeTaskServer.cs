@@ -36,8 +36,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
             {
                 return Task.FromResult<Stream>(new FileStream(zip, FileMode.Open, FileAccess.Read, FileShare.ReadWrite));
             }
-
-            return Task.FromResult<Stream>(null);
+            else
+            {
+                throw new Exception("A step specified a task which does not exist in the L1 test framework. Any tasks used by L1 tests must be added manually.")
+            }
         }
 
         public Task<bool> TaskDefinitionEndpointExist()
