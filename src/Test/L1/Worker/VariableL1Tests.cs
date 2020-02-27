@@ -40,7 +40,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         }
 
         // Enable this test when read only variable enforcement is added
-        /*[Fact]
+        [Fact]
         [Trait("Level", "L1")]
         [Trait("Category", "Worker")]
         public async Task Readonly_Variables()
@@ -60,7 +60,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 
             // Assert
             AssertJobCompleted();
-            Assert.Equal(TaskResult.Succeeded, results.Result);
+            Assert.Equal(TaskResult.Failed, results.Result);
 
             var steps = GetSteps();
             Assert.Equal(4, steps.Count()); // Init, CmdLine, CmdLine, Finalize
@@ -70,7 +70,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 
             var outputStep = steps[2];
             var log = GetTimelineLogLines(outputStep);
-            Assert.True(log.Where(x => x.Contains("SystemVariableValue=build")).Count() == 1);
-        }*/
+            Assert.True(log.Where(x => x.Contains("SystemVariableValue=build")).Count() > 0);
+        }
     }
 }
