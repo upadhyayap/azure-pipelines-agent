@@ -214,7 +214,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                             using (FileStream fs = new FileStream(zipFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: _defaultFileStreamBufferSize, useAsync: true))
                             using (Stream result = await taskServer.GetTaskContentZipAsync(task.Id, version, taskDownloadCancellation.Token))
                             {
-                                await result.CopyToAsync(fs, _defaultCopyBufferSize, taskDownloadCancellation.Token);
+                                result.CopyTo(fs, _defaultCopyBufferSize);
                                 await fs.FlushAsync(taskDownloadCancellation.Token);
 
                                 // download succeed, break out the retry loop.
