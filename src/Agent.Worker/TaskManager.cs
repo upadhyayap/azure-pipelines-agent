@@ -215,9 +215,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                             using (Stream result = await taskServer.GetTaskContentZipAsync(task.Id, version, taskDownloadCancellation.Token))
                             {
                                 Trace.Info("Opened file stream");
-                                await result.CopyToAsync(fs, _defaultCopyBufferSize, taskDownloadCancellation.Token);
+                                await result.CopyToAsync(fs, _defaultCopyBufferSize, taskDownloadCancellation.Token).ConfigureAwait(false);
                                 Trace.Info("Copied stream");
-                                await fs.FlushAsync(taskDownloadCancellation.Token);
+                                await fs.FlushAsync(taskDownloadCancellation.Token).ConfigureAwait(false);
                                 Trace.Info("Flished stream");
 
                                 // download succeed, break out the retry loop.
