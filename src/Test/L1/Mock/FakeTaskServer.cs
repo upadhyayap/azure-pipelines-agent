@@ -20,7 +20,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
             String taskZip = Path.Join(HostContext.GetDirectory(WellKnownDirectory.Externals), "Tasks", taskId.ToString() + ".zip");
             if (File.Exists(taskZip))
             {
-                return Task.FromResult<Stream>(File.OpenRead(taskZip));
+                return Task.FromResult<Stream>(new FileStream(taskZip, FileMode.Open, FileAccess.Read, FileShare.Read));
             }
             else
             {
