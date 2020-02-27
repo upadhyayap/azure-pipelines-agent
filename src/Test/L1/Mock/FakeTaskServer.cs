@@ -17,24 +17,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 
         public Task<Stream> GetTaskContentZipAsync(Guid taskId, TaskVersion taskVersion, CancellationToken token)
         {
-            // Path to unzipped folders in externals
-            String taskPath = Path.Join(HostContext.GetDirectory(WellKnownDirectory.Externals), "Tasks", taskId.ToString());
-
-            // Zip the folder into the working directory
-            String taskZipsPath = Path.Join(HostContext.GetDirectory(WellKnownDirectory.Work), "taskzips");
-            String zip = Path.Join(taskZipsPath, taskId.ToString() + ".zip");
-            if (Directory.Exists(taskPath) && !File.Exists(zip))
+            String taskZip = Path.Join(HostContext.GetDirectory(WellKnownDirectory.Externals), "Tasks", taskId.ToString() + ".zip");
+            if (File.Exists(taskZip))
             {
-                if (!Directory.Exists(taskZipsPath))
-                {
-                    Directory.CreateDirectory(taskZipsPath);
-                }
-                ZipFile.CreateFromDirectory(taskPath, zip);
-            }
-
-            if (File.Exists(zip))
-            {
-                return Task.FromResult<Stream>(File.OpenRead(zip));
+                return Task.FromResult<Stream>(File.OpenRead(taskZip));
             }
             else
             {
