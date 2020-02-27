@@ -34,7 +34,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 
             if (File.Exists(zip))
             {
-                return Task.FromResult<Stream>(new FileStream(zip, FileMode.Open, FileAccess.Read, FileShare.None, bufferSize: 4096, useAsync: true));
+                return Task.FromResult<Stream>(File.OpenRead(zip));
             }
             else
             {
