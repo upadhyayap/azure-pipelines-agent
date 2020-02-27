@@ -124,9 +124,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         {
             String zipFile = GetTaskZipPath(task.Reference);
             String destinationDirectory = GetDirectory(task.Reference);
-            
+
             executionContext.Debug($"Extracting task {task.Name} from {zipFile} to {destinationDirectory}.");
-            
+
             Trace.Verbose("Deleting task destination folder: {0}", destinationDirectory);
             IOUtil.DeleteDirectory(destinationDirectory, executionContext.CancellationToken);
 
@@ -214,8 +214,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                             using (FileStream fs = new FileStream(zipFile, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: _defaultFileStreamBufferSize, useAsync: true))
                             using (Stream result = await taskServer.GetTaskContentZipAsync(task.Id, version, taskDownloadCancellation.Token))
                             {
+                                Trace.Info("Opened file stream");
                                 await result.CopyToAsync(fs, _defaultCopyBufferSize, taskDownloadCancellation.Token);
+                                Trace.Info("Copied stream");
                                 await fs.FlushAsync(taskDownloadCancellation.Token);
+                                Trace.Info("Flished stream");
 
                                 // download succeed, break out the retry loop.
                                 break;

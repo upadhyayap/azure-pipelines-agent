@@ -29,14 +29,12 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
                 {
                     Directory.CreateDirectory(taskZipsPath);
                 }
-                Trace.Info("Creating task zip for test");
                 ZipFile.CreateFromDirectory(taskPath, zip);
             }
 
             if (File.Exists(zip))
             {
-                Trace.Info("Found task zip for test");
-                return Task.FromResult<Stream>(new FileStream(zip, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize: 4096, useAsync: true));
+                return Task.FromResult<Stream>(new FileStream(zip, FileMode.Open, FileAccess.Read, FileShare.None, bufferSize: 4096, useAsync: true));
             }
             else
             {

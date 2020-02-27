@@ -1,8 +1,3 @@
-using System.Threading;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System;
-using System.Linq;
 using Microsoft.VisualStudio.Services.Agent.Worker;
 using Pipelines = Microsoft.TeamFoundation.DistributedTask.Pipelines;
 
