@@ -23,7 +23,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
         Task<int> ExecuteCommand(CommandSettings command);
     }
 
-    public sealed class Agent : AgentService, IAgent
+    public sealed class Agent : AgentService, IAgent, IDisposable
     {
         private IMessageListener _listener;
         private ITerminal _term;
@@ -38,6 +38,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
 
         public async Task<int> ExecuteCommand(CommandSettings command)
         {
+            ArgUtil.NotNull(command, nameof(command));
             try
             {
                 var agentWebProxy = HostContext.GetService<IVstsAgentWebProxy>();
@@ -234,6 +235,12 @@ namespace Microsoft.VisualStudio.Services.Agent.Listener
                 HostContext.Unloading -= Agent_Unloading;
                 _completedCommand.Set();
             }
+        }
+
+        public void Dispose()
+        {
+            _term?.Dispose();
+            _completedCommand.Dispose();
         }
 
         private void Agent_Unloading(object sender, EventArgs e)

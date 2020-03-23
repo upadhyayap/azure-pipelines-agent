@@ -75,7 +75,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         IHostContext GetHostContext();
     }
 
-    public sealed class ExecutionContext : AgentService, IExecutionContext
+    public sealed class ExecutionContext : AgentService, IExecutionContext, IDisposable
     {
         private const int _maxIssueCount = 10;
 
@@ -761,6 +761,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         {
             return new SystemEnvironment();
         }
+
+        public void Dispose()
+        {
+            _cancellationTokenSource?.Dispose();
+        }
     }
 
     // The Error/Warning/etc methods are created as extension methods to simplify unit testing.
@@ -769,6 +774,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
     {
         public static void Error(this IExecutionContext context, Exception ex)
         {
+            ArgUtil.NotNull(context, nameof(context));
+            ArgUtil.NotNull(ex, nameof(ex));
+
             context.Error(ex.Message);
             context.Debug(ex.ToString());
         }
@@ -776,30 +784,35 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         // Do not add a format string overload. See comment on ExecutionContext.Write().
         public static void Error(this IExecutionContext context, string message)
         {
+            ArgUtil.NotNull(context, nameof(context));
             context.AddIssue(new Issue() { Type = IssueType.Error, Message = message });
         }
 
         // Do not add a format string overload. See comment on ExecutionContext.Write().
         public static void Warning(this IExecutionContext context, string message)
         {
+            ArgUtil.NotNull(context, nameof(context));
             context.AddIssue(new Issue() { Type = IssueType.Warning, Message = message });
         }
 
         // Do not add a format string overload. See comment on ExecutionContext.Write().
         public static void Output(this IExecutionContext context, string message)
         {
+            ArgUtil.NotNull(context, nameof(context));
             context.Write(null, message);
         }
 
         // Do not add a format string overload. See comment on ExecutionContext.Write().
         public static void Command(this IExecutionContext context, string message)
         {
+            ArgUtil.NotNull(context, nameof(context));
             context.Write(WellKnownTags.Command, message);
         }
 
         // Do not add a format string overload. See comment on ExecutionContext.Write().
         public static void Section(this IExecutionContext context, string message)
         {
+            ArgUtil.NotNull(context, nameof(context));
             context.Write(WellKnownTags.Section, message);
         }
 
@@ -811,6 +824,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
         // Do not add a format string overload. See comment on ExecutionContext.Write().
         public static void Debug(this IExecutionContext context, string message)
         {
+            ArgUtil.NotNull(context, nameof(context));
             if (context.WriteDebug)
             {
                 context.Write(WellKnownTags.Debug, message);

@@ -100,6 +100,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Release.Artifacts
 
         public IArtifactDetails GetArtifactDetails(IExecutionContext context, AgentArtifactDefinition agentArtifactDefinition)
         {
+            ArgUtil.NotNull(context, nameof(context));
+            ArgUtil.NotNull(agentArtifactDefinition, nameof(agentArtifactDefinition));
+
             Trace.Entering();
 
             ServiceEndpoint vssEndpoint = context.Endpoints.FirstOrDefault(e => string.Equals(e.Name, WellKnownServiceEndpointNames.SystemVssConnection, StringComparison.OrdinalIgnoreCase));
@@ -110,7 +113,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Release.Artifacts
             VssCredentials vssCredentials = VssUtil.GetVssCredential(vssEndpoint);
             var tfsUrl = context.Variables.Get(WellKnownDistributedTaskVariables.TFCollectionUrl);
 
-            Guid projectId = context.Variables.System_TeamProjectId ?? Guid.Empty;
+            Guid projectId = context?.Variables.System_TeamProjectId ?? Guid.Empty;
             if (artifactDetails.ContainsKey("Project"))
             {
                 Guid.TryParse(artifactDetails["Project"], out projectId);
@@ -245,15 +248,15 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Release.Artifacts
                 executionContext.Output(StringUtil.Loc("RMParallelDownloadLimit", containerFetchEngineOptions.ParallelDownloadLimit));
                 executionContext.Output(StringUtil.Loc("RMDownloadBufferSize", containerFetchEngineOptions.DownloadBufferSize));
 
-                IContainerProvider containerProvider =
-                    new ContainerProviderFactory(buildArtifactDetails, rootLocation, containerId, executionContext).GetContainerProvider(
-                        ArtifactResourceTypes.Container);
-
-                using (var engine = new ContainerFetchEngine.ContainerFetchEngine(containerProvider, rootLocation, rootDestinationDir))
+                using (var containerProviderFactory = new ContainerProviderFactory(buildArtifactDetails, rootLocation, containerId, executionContext))
                 {
-                    engine.ContainerFetchEngineOptions = containerFetchEngineOptions;
-                    engine.ExecutionLogger = new ExecutionLogger(executionContext);
-                    await engine.FetchAsync(executionContext.CancellationToken);
+                    var containerProvider = containerProviderFactory.GetContainerProvider(ArtifactResourceTypes.Container);
+                    using (var engine = new ContainerFetchEngine.ContainerFetchEngine(containerProvider, rootLocation, rootDestinationDir))
+                    {
+                        engine.ContainerFetchEngineOptions = containerFetchEngineOptions;
+                        engine.ExecutionLogger = new ExecutionLogger(executionContext);
+                        await engine.FetchAsync(executionContext.CancellationToken);
+                    }
                 }
             }
             else
