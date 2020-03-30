@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 {
+    [Collection("Worker L1 Tests")]
     public class CheckoutL1Tests : L1TestBase
     {
         [Fact]
