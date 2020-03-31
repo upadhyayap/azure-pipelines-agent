@@ -17,28 +17,36 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         [Trait("Category", "Worker")]
         public async Task NoCheckout()
         {
-            // Arrange
-            var message = LoadTemplateMessage();
-            // Remove checkout
-            for (var i = message.Steps.Count - 1; i >= 0; i--)
+            try
             {
-                var step = message.Steps[i];
-                if (step is TaskStep && ((TaskStep)step).Reference.Name == "Checkout")
+                // Arrange
+                SetupL1();
+                var message = LoadTemplateMessage();
+                // Remove checkout
+                for (var i = message.Steps.Count - 1; i >= 0; i--)
                 {
-                    message.Steps.RemoveAt(i);
+                    var step = message.Steps[i];
+                    if (step is TaskStep && ((TaskStep)step).Reference.Name == "Checkout")
+                    {
+                        message.Steps.RemoveAt(i);
+                    }
                 }
+
+                // Act
+                var results = await RunWorker(message);
+
+                // Assert
+                AssertJobCompleted();
+                Assert.Equal(TaskResult.Succeeded, results.Result);
+
+                var steps = GetSteps();
+                Assert.Equal(3, steps.Count()); // Init, CmdLine, Finalize
+                Assert.Equal(0, steps.Where(x => x.Name == "Checkout").Count());
             }
-
-            // Act
-            var results = await RunWorker(message);
-
-            // Assert
-            AssertJobCompleted();
-            Assert.Equal(TaskResult.Succeeded, results.Result);
-
-            var steps = GetSteps();
-            Assert.Equal(3, steps.Count()); // Init, CmdLine, Finalize
-            Assert.Equal(0, steps.Where(x => x.Name == "Checkout").Count());
+            finally
+            {
+                TearDown();
+            }
         }
     }
 }

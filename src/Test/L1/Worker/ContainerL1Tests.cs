@@ -17,29 +17,37 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         [Trait("Category", "Worker")]
         public async Task StepTarget_RestrictedMode()
         {
-            // Arrange
-            var message = LoadTemplateMessage();
-            // Remove all tasks
-            message.Steps.Clear();
-            var tagStep = CreateScriptTask("echo \"##vso[build.addbuildtag]sometag\"");
-            tagStep.Target = new StepTarget
+            try
             {
-                Commands = "restricted"
-            };
-            message.Steps.Add(tagStep);
+                // Arrange
+                SetupL1();
+                var message = LoadTemplateMessage();
+                // Remove all tasks
+                message.Steps.Clear();
+                var tagStep = CreateScriptTask("echo \"##vso[build.addbuildtag]sometag\"");
+                tagStep.Target = new StepTarget
+                {
+                    Commands = "restricted"
+                };
+                message.Steps.Add(tagStep);
 
-            // Act
-            var results = await RunWorker(message);
+                // Act
+                var results = await RunWorker(message);
 
-            // Assert
-            AssertJobCompleted();
-            Assert.Equal(TaskResult.Succeeded, results.Result);
+                // Assert
+                AssertJobCompleted();
+                Assert.Equal(TaskResult.Succeeded, results.Result);
 
-            var steps = GetSteps();
-            Assert.Equal(3, steps.Count()); // Init, CmdLine, Finalize
-            var log = GetTimelineLogLines(steps[1]);
-            Assert.Equal(1, log.Where(x => x.Contains("##vso[build.addbuildtag] is not allowed in this step due to policy restrictions.")).Count());
-            Assert.Equal(0, GetMockedService<FakeBuildServer>().BuildTags.Count);
+                var steps = GetSteps();
+                Assert.Equal(3, steps.Count()); // Init, CmdLine, Finalize
+                var log = GetTimelineLogLines(steps[1]);
+                Assert.Equal(1, log.Where(x => x.Contains("##vso[build.addbuildtag] is not allowed in this step due to policy restrictions.")).Count());
+                Assert.Equal(0, GetMockedService<FakeBuildServer>().BuildTags.Count);
+            }
+            finally
+            {
+                TearDown();
+            }
         }
     }
 }

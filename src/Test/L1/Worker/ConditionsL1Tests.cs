@@ -16,27 +16,35 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         [Trait("Category", "Worker")]
         public async Task Conditions_Failed()
         {
-            // Arrange
-            var message = LoadTemplateMessage();
-            // Remove all tasks
-            message.Steps.Clear();
-            // Add a normal step and one that only runs on failure
-            message.Steps.Add(CreateScriptTask("echo This will run"));
-            var failStep = CreateScriptTask("echo This shouldn't...");
-            failStep.Condition = "failed()";
-            message.Steps.Add(failStep);
+            try
+            {
+                // Arrange
+                SetupL1();
+                var message = LoadTemplateMessage();
+                // Remove all tasks
+                message.Steps.Clear();
+                // Add a normal step and one that only runs on failure
+                message.Steps.Add(CreateScriptTask("echo This will run"));
+                var failStep = CreateScriptTask("echo This shouldn't...");
+                failStep.Condition = "failed()";
+                message.Steps.Add(failStep);
 
-            // Act
-            var results = await RunWorker(message);
+                // Act
+                var results = await RunWorker(message);
 
-            // Assert
-            AssertJobCompleted();
-            Assert.Equal(TaskResult.Succeeded, results.Result);
+                // Assert
+                AssertJobCompleted();
+                Assert.Equal(TaskResult.Succeeded, results.Result);
 
-            var steps = GetSteps();
-            Assert.Equal(4, steps.Count()); // Init, CmdLine, CmdLine, Finalize
-            var faiLStep = steps[2];
-            Assert.Equal(TaskResult.Skipped, faiLStep.Result);
+                var steps = GetSteps();
+                Assert.Equal(4, steps.Count()); // Init, CmdLine, CmdLine, Finalize
+                var faiLStep = steps[2];
+                Assert.Equal(TaskResult.Skipped, faiLStep.Result);
+            }
+            finally
+            {
+                TearDown();
+            }
         }
     }
 }

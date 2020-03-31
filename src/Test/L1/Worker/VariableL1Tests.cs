@@ -5,6 +5,7 @@ using Microsoft.TeamFoundation.DistributedTask.WebApi;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using Pipelines = Microsoft.TeamFoundation.DistributedTask.WebApi;
 
 namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 {
@@ -16,32 +17,40 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         [Trait("Category", "Worker")]
         public async Task SetVariable_ReadVariable()
         {
-            // Arrange
-            var message = LoadTemplateMessage();
-            // Remove all tasks
-            message.Steps.Clear();
-            // Add variable setting tasks
-            message.Steps.Add(CreateScriptTask("echo \"##vso[task.setvariable variable=testVar]b\""));
-            message.Steps.Add(CreateScriptTask("echo TestVar=$(testVar)"));
-            message.Variables.Add("testVar", new VariableValue("a", false, false));
+            try
+            {
+                // Arrange
+                SetupL1();
+                var message = LoadTemplateMessage();
+                // Remove all tasks
+                message.Steps.Clear();
+                // Add variable setting tasks
+                message.Steps.Add(CreateScriptTask("echo \"##vso[task.setvariable variable=testVar]b\""));
+                message.Steps.Add(CreateScriptTask("echo TestVar=$(testVar)"));
+                message.Variables.Add("testVar", new Pipelines.VariableValue("a", false, false));
 
-            // Act
-            var results = await RunWorker(message);
+                // Act
+                var results = await RunWorker(message);
 
-            // Assert
-            AssertJobCompleted();
-            Assert.Equal(TaskResult.Succeeded, results.Result);
+                // Assert
+                AssertJobCompleted();
+                Assert.Equal(TaskResult.Succeeded, results.Result);
 
-            var steps = GetSteps();
-            Assert.Equal(4, steps.Count()); // Init, CmdLine, CmdLine, Finalize
-            var outputStep = steps[2];
-            var log = GetTimelineLogLines(outputStep);
+                var steps = GetSteps();
+                Assert.Equal(4, steps.Count()); // Init, CmdLine, CmdLine, Finalize
+                var outputStep = steps[2];
+                var log = GetTimelineLogLines(outputStep);
 
-            Assert.True(log.Where(x => x.Contains("TestVar=b")).Count() > 0);
+                Assert.True(log.Where(x => x.Contains("TestVar=b")).Count() > 0);
+            }
+            finally
+            {
+                TearDown();
+            }
         }
 
         // Enable this test when read only variable enforcement is added
-        [Fact]
+        /*[Fact]
         [Trait("Level", "L1")]
         [Trait("Category", "Worker")]
         public async Task Readonly_Variables()
@@ -72,6 +81,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
             var outputStep = steps[2];
             var log = GetTimelineLogLines(outputStep);
             Assert.True(log.Where(x => x.Contains("SystemVariableValue=build")).Count() > 0);
-        }
+        }*/
     }
 }

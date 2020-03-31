@@ -12,7 +12,6 @@ using Microsoft.VisualStudio.Services.WebApi;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -214,6 +213,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
             }
         }
 
+        protected void TearDown()
+        {
+            this._l1HostContext?.Dispose();
+        }
+
         public void Dispose()
         {
             Dispose(true);
@@ -222,7 +226,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 
         protected virtual void Dispose(bool disposing)
         {
-            if (disposing) 
+            if (disposing)
             {
                 this._l1HostContext?.Dispose();
             }

@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
 {
+    [Collection("Worker L1 Tests")]
     public class CoreL1Tests : L1TestBase
     {
         [Fact]
@@ -15,22 +16,30 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         [Trait("Category", "Worker")]
         public async Task Test_Base()
         {
-            // Arrange
-            var message = LoadTemplateMessage();
-
-            // Act
-            var results = await RunWorker(message);
-
-            // Assert
-            AssertJobCompleted();
-            Assert.Equal(TaskResult.Succeeded, results.Result);
-
-            var steps = GetSteps();
-            var expectedSteps = new[] { "Initialize job", "Checkout MyFirstProject@master to s", "CmdLine", "Post-job: Checkout MyFirstProject@master to s", "Finalize Job" };
-            Assert.Equal(5, steps.Count()); // Init, Checkout, CmdLine, Post, Finalize
-            for (var idx = 0; idx < steps.Count; idx++)
+            try
             {
-                Assert.Equal(expectedSteps[idx], steps[idx].Name);
+                // Arrange
+                SetupL1();
+                var message = LoadTemplateMessage();
+
+                // Act
+                var results = await RunWorker(message);
+
+                // Assert
+                AssertJobCompleted();
+                Assert.Equal(TaskResult.Succeeded, results.Result);
+
+                var steps = GetSteps();
+                var expectedSteps = new[] { "Initialize job", "Checkout MyFirstProject@master to s", "CmdLine", "Post-job: Checkout MyFirstProject@master to s", "Finalize Job" };
+                Assert.Equal(5, steps.Count()); // Init, Checkout, CmdLine, Post, Finalize
+                for (var idx = 0; idx < steps.Count; idx++)
+                {
+                    Assert.Equal(expectedSteps[idx], steps[idx].Name);
+                }
+            }
+            finally
+            {
+                TearDown();
             }
         }
     }
