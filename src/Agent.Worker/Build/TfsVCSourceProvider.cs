@@ -42,7 +42,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
                 // Validate .NET Framework 4.6 or higher is installed.
                 if (!NetFrameworkUtil.Test(new Version(4, 6), Trace))
                 {
-                    throw new Exception(StringUtil.Loc("MinimumNetFramework46"));
+                    throw new ArgumentException(StringUtil.Loc("MinimumNetFramework46"));
                 }
             }
 

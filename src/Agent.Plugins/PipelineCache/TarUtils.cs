@@ -145,7 +145,7 @@ namespace Agent.Plugins.PipelineCache
                     }
                     else
                     {
-                        throw new Exception($"Process returned non-zero exit code: {exitCode}");
+                        throw new InvalidOperationException($"Process returned non-zero exit code: {exitCode}");
                     }
                 }
                 catch (Exception e)

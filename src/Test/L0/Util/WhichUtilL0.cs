@@ -64,7 +64,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Util
                 try
                 {
                     WhichUtil.Which("no-such-file-cf7e351f", require: true, trace: trace);
-                    throw new Exception("which should have thrown");
+                    throw new InvalidOperationException("which should have thrown");
                 }
                 catch (FileNotFoundException ex)
                 {

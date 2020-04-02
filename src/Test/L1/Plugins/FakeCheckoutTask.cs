@@ -39,7 +39,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
             }
             else
             {
-                throw new Exception("Source provider not mocked: " + repositoryType);
+                throw new ArgumentException("Source provider not mocked: " + repositoryType);
             }
         }
     }

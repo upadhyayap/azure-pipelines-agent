@@ -168,7 +168,7 @@ namespace Agent.Plugins.PipelineArtifact
                 // Exit code returned from robocopy. For more info https://blogs.technet.microsoft.com/deploymentguys/2008/06/16/robocopy-exit-codes/
                 if (exitCode >= 8)
                 {
-                    throw new Exception(StringUtil.Loc("RobocopyBasedPublishArtifactTaskFailed", exitCode));
+                    throw new InvalidOperationException(StringUtil.Loc("RobocopyBasedPublishArtifactTaskFailed", exitCode));
                 }
 
                 return new FileSharePublishResult (exitCode);

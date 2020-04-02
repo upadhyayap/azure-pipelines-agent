@@ -117,7 +117,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
             if (!_serviceInstances.TryGetValue(typeof(T), out queue) ||
                 !queue.TryDequeue(out service))
             {
-                throw new Exception($"Unable to dequeue a registered instance for type '{typeof(T).FullName}'.");
+                throw new InvalidOperationException($"Unable to dequeue a registered instance for type '{typeof(T).FullName}'.");
             }
 
             var s = service as T;
@@ -133,7 +133,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
             object service;
             if (!_serviceSingletons.TryGetValue(typeof(T), out service))
             {
-                throw new Exception($"Singleton instance not registered for type '{typeof(T).FullName}'.");
+                throw new ArgumentException($"Singleton instance not registered for type '{typeof(T).FullName}'.");
             }
 
             T s = service as T;

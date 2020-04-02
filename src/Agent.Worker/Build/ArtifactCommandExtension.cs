@@ -58,7 +58,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
             if (!eventProperties.TryGetValue(ArtifactAssociateEventProperties.ArtifactName, out artifactName) ||
                 string.IsNullOrEmpty(artifactName))
             {
-                throw new Exception(StringUtil.Loc("ArtifactNameRequired"));
+                throw new ArgumentNullException(StringUtil.Loc("ArtifactNameRequired"));
             }
 
             string artifactType;
@@ -69,20 +69,20 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
 
             if (string.IsNullOrEmpty(artifactType))
             {
-                throw new Exception(StringUtil.Loc("ArtifactTypeRequired"));
+                throw new ArgumentNullException(StringUtil.Loc("ArtifactTypeRequired"));
             }
             else if ((artifactType.Equals(ArtifactResourceTypes.Container, StringComparison.OrdinalIgnoreCase) ||
                       artifactType.Equals(ArtifactResourceTypes.FilePath, StringComparison.OrdinalIgnoreCase) ||
                       artifactType.Equals(ArtifactResourceTypes.VersionControl, StringComparison.OrdinalIgnoreCase)) &&
                       string.IsNullOrEmpty(data))
             {
-                throw new Exception(StringUtil.Loc("ArtifactLocationRequired"));
+                throw new ArgumentNullException(StringUtil.Loc("ArtifactLocationRequired"));
             }
 
             if (!artifactType.Equals(ArtifactResourceTypes.FilePath, StringComparison.OrdinalIgnoreCase) &&
                 context.Variables.System_HostType != HostTypes.Build)
             {
-                throw new Exception(StringUtil.Loc("AssociateArtifactCommandNotSupported", context.Variables.System_HostType));
+                throw new ArgumentException(StringUtil.Loc("AssociateArtifactCommandNotSupported", context.Variables.System_HostType));
             }
 
             var propertyDictionary = ArtifactCommandExtensionUtil.ExtractArtifactProperties(eventProperties);
@@ -150,7 +150,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
             if (!eventProperties.TryGetValue(ArtifactUploadEventProperties.ArtifactName, out artifactName) ||
                 string.IsNullOrEmpty(artifactName))
             {
-                throw new Exception(StringUtil.Loc("ArtifactNameRequired"));
+                throw new ArgumentNullException(StringUtil.Loc("ArtifactNameRequired"));
             }
 
             string containerFolder;
@@ -167,12 +167,12 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
 
             if (string.IsNullOrEmpty(localPath))
             {
-                throw new Exception(StringUtil.Loc("ArtifactLocationRequired"));
+                throw new ArgumentNullException(StringUtil.Loc("ArtifactLocationRequired"));
             }
 
             if (!ArtifactCommandExtensionUtil.IsUncSharePath(context, localPath) && (context.Variables.System_HostType != HostTypes.Build))
             {
-                throw new Exception(StringUtil.Loc("UploadArtifactCommandNotSupported", context.Variables.System_HostType));
+                throw new ArgumentException(StringUtil.Loc("UploadArtifactCommandNotSupported", context.Variables.System_HostType));
             }
 
             string fullPath = Path.GetFullPath(localPath);
@@ -321,7 +321,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
 
             if (string.IsNullOrEmpty(type))
             {
-                throw new Exception(StringUtil.Loc("UnableResolveArtifactType", artifactLocation ?? string.Empty));
+                throw new ArgumentNullException(StringUtil.Loc("UnableResolveArtifactType", artifactLocation ?? string.Empty));
             }
 
             return type;

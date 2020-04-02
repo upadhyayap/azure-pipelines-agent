@@ -122,7 +122,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
                     }
                     else
                     {
-                        throw new Exception(StringUtil.Loc("FileUploadFailedAfterRetry"));
+                        throw new InvalidOperationException(StringUtil.Loc("FileUploadFailedAfterRetry"));
                     }
                 }
                 finally

@@ -145,7 +145,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Worker.Telemetry
                 cmd.Properties.Add("area", "Test");
                 cmd.Properties.Add("feature", "Task");
 
-                var ex = Assert.Throws<Exception>(() => publishTelemetryCmd.ProcessCommand(_ec.Object, cmd, _policy));
+                var ex = Assert.Throws<ArgumentNullException>(() => publishTelemetryCmd.ProcessCommand(_ec.Object, cmd, _policy));
             }
         }
 

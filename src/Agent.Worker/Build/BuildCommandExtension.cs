@@ -45,7 +45,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
             }
             else
             {
-                throw new Exception(StringUtil.Loc("CustomLogDoesNotExist", data ?? string.Empty));
+                throw new ArgumentNullException(StringUtil.Loc("CustomLogDoesNotExist", data ?? string.Empty));
             }
         }
     }
@@ -71,7 +71,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
             }
             else
             {
-                throw new Exception(StringUtil.Loc("CustomMarkDownSummaryDoesNotExist", data ?? string.Empty));
+                throw new ArgumentNullException(StringUtil.Loc("CustomMarkDownSummaryDoesNotExist", data ?? string.Empty));
             }
         }
     }
@@ -116,7 +116,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
             }
             else
             {
-                throw new Exception(StringUtil.Loc("BuildNumberRequired"));
+                throw new ArgumentNullException(StringUtil.Loc("BuildNumberRequired"));
             }
         }
 
@@ -171,7 +171,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
             }
             else
             {
-                throw new Exception(StringUtil.Loc("BuildTagRequired"));
+                throw new ArgumentNullException(StringUtil.Loc("BuildTagRequired"));
             }
         }
 
@@ -189,7 +189,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
 
             if (tags == null || !tags.Any(t => t.Equals(buildTag, StringComparison.OrdinalIgnoreCase)))
             {
-                throw new Exception(StringUtil.Loc("BuildTagAddFailed", buildTag));
+                throw new InvalidOperationException(StringUtil.Loc("BuildTagAddFailed", buildTag));
             }
             else
             {

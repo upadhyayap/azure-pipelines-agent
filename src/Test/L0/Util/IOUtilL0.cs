@@ -943,7 +943,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Util
                         IOUtil.ValidateExecutePermission(directory);
 
                         // Assert.
-                        throw new Exception("Should have thrown not supported exception.");
+                        throw new InvalidOperationException("Should have thrown not supported exception.");
                     }
                     catch (NotSupportedException)
                     {

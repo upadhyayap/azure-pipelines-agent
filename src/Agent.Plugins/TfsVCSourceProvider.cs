@@ -30,7 +30,7 @@ namespace Agent.Plugins.Repository
             // Validate .NET Framework 4.6 or higher is installed.
             if (PlatformUtil.RunningOnWindows && !NetFrameworkUtil.Test(new Version(4, 6), executionContext))
             {
-                throw new Exception(StringUtil.Loc("MinimumNetFramework46"));
+                throw new ArgumentException(StringUtil.Loc("MinimumNetFramework46"));
             }
 
             // determine if we've been asked to suppress some checkout step output

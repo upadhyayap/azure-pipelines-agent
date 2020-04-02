@@ -18,11 +18,11 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.L1.Worker
         {
             if (!_taskPlugins.Contains(existingPlugin))
             {
-                throw new Exception($"{existingPlugin} must exist in _taskPlugins in order to be replaced");
+                throw new ArgumentException($"{existingPlugin} must exist in _taskPlugins in order to be replaced");
             }
             if (_taskPlugins.Contains(fakePlugin))
             {
-                throw new Exception($"{fakePlugin} already exists in _taskPlugins");
+                throw new ArgumentException($"{fakePlugin} already exists in _taskPlugins");
             }
             _taskPlugins.Remove(existingPlugin);
             _taskPlugins.Add(fakePlugin);

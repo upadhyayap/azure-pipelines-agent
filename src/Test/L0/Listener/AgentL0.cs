@@ -644,6 +644,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Listener
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "Exception")]
         [Theory]
         [Trait("Level", "L0")]
         [Trait("Category", "Agent")]

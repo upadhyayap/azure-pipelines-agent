@@ -196,6 +196,7 @@ namespace Test.L0.Plugin.TestResultParser
             publisher.Verify(x => x.PublishAsync(It.IsAny<TestRun>()), Times.Exactly(2));
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "Exception")]
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Plugin")]

@@ -169,6 +169,7 @@ namespace Test.L0.Plugin.TestResultParser
             Assert.True(result == false);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "Exception")]
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Plugin")]

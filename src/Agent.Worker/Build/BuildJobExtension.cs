@@ -139,7 +139,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
             // We set the variables based on the 'self' repository
             if (!TryGetRepositoryInfo(executionContext, out RepositoryInfo repoInfo))
             {
-                throw new Exception(StringUtil.Loc("SupportedRepositoryEndpointNotFound"));
+                throw new ArgumentNullException(StringUtil.Loc("SupportedRepositoryEndpointNotFound"));
             }
 
             executionContext.Debug($"Triggering repository: {repoInfo.TriggeringRepository.Properties.Get<string>(Pipelines.RepositoryPropertyNames.Name)}. repository type: {repoInfo.TriggeringRepository.Type}");

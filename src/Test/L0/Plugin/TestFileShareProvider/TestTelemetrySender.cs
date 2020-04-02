@@ -50,6 +50,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
             get { return RecordsSent.OfType<ErrorTelemetryRecord>().ToArray(); }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "ApplicationException")]
         public void SendActionTelemetry(ActionTelemetryRecord actionTelemetry)
         {
             CheckStarted();
@@ -62,6 +63,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
             AddRecord(actionTelemetry);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "ApplicationException")]
         public void SendErrorTelemetry(ErrorTelemetryRecord errorTelemetry)
         {
             CheckStarted();
@@ -74,6 +76,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
             AddRecord(errorTelemetry);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "ApplicationException")]
         public void SendRecord(TelemetryRecord record)
         {
             CheckStarted();
@@ -86,6 +89,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
             AddRecord(record);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "ApplicationException")]
         public void StartSender()
         {
             if (startThrows)
@@ -97,6 +101,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests
             StoppedSuccessfully = false;
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "ApplicationException")]
         public void StopSender()
         {
             if (stopThrows)

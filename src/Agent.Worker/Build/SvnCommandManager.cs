@@ -115,7 +115,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
 
             if (string.IsNullOrEmpty(svnPath))
             {
-                throw new Exception(StringUtil.Loc("SvnNotInstalled"));
+                throw new ArgumentNullException(StringUtil.Loc("SvnNotInstalled"));
             }
             else
             {
@@ -164,7 +164,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
 
             if (string.IsNullOrEmpty(svnPath))
             {
-                throw new Exception(StringUtil.Loc("SvnNotInstalled"));
+                throw new ArgumentNullException(StringUtil.Loc("SvnNotInstalled"));
             }
             else
             {
@@ -232,7 +232,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
         {
             if (File.Exists(rootPath))
             {
-                throw new Exception(StringUtil.Loc("SvnFileAlreadyExists", rootPath));
+                throw new ArgumentException(StringUtil.Loc("SvnFileAlreadyExists", rootPath));
             }
 
             Dictionary<string, Uri> mappings = new Dictionary<string, Uri>();
@@ -581,7 +581,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
                     // Validate the arg.
                     if (arg.IndexOfAny(new char[] { '"', '\r', '\n' }) >= 0)
                     {
-                        throw new Exception(StringUtil.Loc("InvalidCommandArg", arg));
+                        throw new ArgumentException(StringUtil.Loc("InvalidCommandArg", arg));
                     }
 
                     // Add the arg.
@@ -810,7 +810,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.Build
 
             if (relativePath.Contains(":") || relativePath.Contains(".."))
             {
-                throw new Exception(StringUtil.Loc("SvnIncorrectRelativePath", relativePath));
+                throw new ArgumentException(StringUtil.Loc("SvnIncorrectRelativePath", relativePath));
             }
 
             return relativePath;

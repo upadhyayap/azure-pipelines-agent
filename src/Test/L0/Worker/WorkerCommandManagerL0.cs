@@ -60,7 +60,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Tests.Worker
         public void SimpleTests()
         {
             var commandExt = new TestWorkerCommandExtensionL0();
-            Assert.Throws<Exception>(() => commandExt.InstallFoo2Command());
+            Assert.Throws<ArgumentException>(() => commandExt.InstallFoo2Command());
 
             IWorkerCommand command = commandExt.GetWorkerCommand("foo");
             Assert.Equal("foo", command.Name);

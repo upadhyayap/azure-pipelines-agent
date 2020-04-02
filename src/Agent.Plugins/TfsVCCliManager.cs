@@ -209,7 +209,7 @@ namespace Agent.Plugins.Repository
                 // Validate the arg.
                 if (!string.IsNullOrEmpty(arg) && arg.IndexOfAny(new char[] { '"', '\r', '\n' }) >= 0)
                 {
-                    throw new Exception(StringUtil.Loc("InvalidCommandArg", arg));
+                    throw new ArgumentException(StringUtil.Loc("InvalidCommandArg", arg));
                 }
 
                 // Add the arg.

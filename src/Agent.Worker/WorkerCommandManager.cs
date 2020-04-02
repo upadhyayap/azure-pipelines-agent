@@ -209,7 +209,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             ArgUtil.NotNull(commandExecutor, nameof(commandExecutor));
             if (_commands.ContainsKey(commandExecutor.Name))
             {
-                throw new Exception(StringUtil.Loc("CommandDuplicateDetected", commandExecutor.Name, CommandArea.ToLowerInvariant()));
+                throw new ArgumentException(StringUtil.Loc("CommandDuplicateDetected", commandExecutor.Name, CommandArea.ToLowerInvariant()));
             }
             _commands[commandExecutor.Name] = commandExecutor;
             var aliasList = commandExecutor.Aliases;
@@ -219,7 +219,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
                 {
                     if (_commands.ContainsKey(alias))
                     {
-                        throw new Exception(StringUtil.Loc("CommandDuplicateDetected", alias, CommandArea.ToLowerInvariant()));
+                        throw new ArgumentException(StringUtil.Loc("CommandDuplicateDetected", alias, CommandArea.ToLowerInvariant()));
                     }
                     _commands[alias] = commandExecutor;
                 }
@@ -241,7 +241,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker
             var commandExecutor = GetWorkerCommand(command.Event);
             if (commandExecutor == null)
             {
-                throw new Exception(StringUtil.Loc("CommandNotFound2", CommandArea.ToLowerInvariant(), command.Event, CommandArea));
+                throw new ArgumentNullException(StringUtil.Loc("CommandNotFound2", CommandArea.ToLowerInvariant(), command.Event, CommandArea));
             }
             if (restrictionPolicy.isCommandAllowed(commandExecutor))
             {

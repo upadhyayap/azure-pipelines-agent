@@ -265,6 +265,7 @@ namespace Test.L0.Plugin.TestFilePublisher
             Assert.True(result == false);
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "Exception")]
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Plugin")]
@@ -391,6 +392,7 @@ namespace Test.L0.Plugin.TestFilePublisher
             Assert.True(plugin.PipelineConfig.SearchFolders[0].Equals("/tmp") && plugin.PipelineConfig.SearchFolders[1].Equals("/def"));
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Maintainability", "CA2201:Do not raise reserved exception types", MessageId = "Exception")]
         [Fact]
         [Trait("Level", "L0")]
         [Trait("Category", "Plugin")]
