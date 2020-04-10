@@ -75,7 +75,7 @@ stages:
       arch: x64
       branch: ${{ parameters.branch }}
       componentDetection: ${{ parameters.componentDetection }}
-      sign: false
+      sign: ${{ parameters.sign }}
       publishArtifact: ${{ parameters.publishArtifacts }}
 
   # Linux (ARM)
@@ -92,24 +92,24 @@ stages:
       arch: arm
       branch: ${{ parameters.branch }}
       componentDetection: false
-      sign: false
+      sign: ${{ parameters.sign }}
       publishArtifact: ${{ parameters.publishArtifacts }}
 
-  # # Linux (ARM64)
-  # - template: build-job.yml
-  #   parameters:
-  #     jobName: build_linux_arm64_agent
-  #     displayName: Linux Agent (ARM64)
-  #     pool:
-  #       name: buildDevs
-  #       demands: 'Agent.OSArchitecture -equals ARM64'
-  #     timeoutInMinutes: 75
-  #     os: linux
-  #     arch: arm64
-  #     branch: ${{ parameters.branch }}
-  #     componentDetection: false
-  #     sign: false
-  #     publishArtifact: ${{ parameters.publishArtifacts }}
+  # Linux (ARM64)
+  - template: build-job.yml
+    parameters:
+      jobName: build_linux_arm64_agent
+      displayName: Linux Agent (ARM64)
+      pool:
+        name: buildDevs
+        demands: 'Agent.OSArchitecture -equals ARM64'
+      timeoutInMinutes: 75
+      os: linux
+      arch: arm64
+      branch: ${{ parameters.branch }}
+      componentDetection: false
+      sign: false
+      publishArtifact: ${{ parameters.publishArtifacts }}
 
   # RHEL6 Agent (x64)
   - template: build-job.yml
@@ -137,7 +137,7 @@ stages:
       arch: x64
       branch: ${{ parameters.branch }}
       componentDetection: ${{ parameters.componentDetection }}
-      sign: false
+      sign: ${{ parameters.sign }}
       publishArtifact: ${{ parameters.publishArtifacts }}
 
-- ${{ parameters.postBuildStages }}
+# - ${{ parameters.postBuildStages }}
