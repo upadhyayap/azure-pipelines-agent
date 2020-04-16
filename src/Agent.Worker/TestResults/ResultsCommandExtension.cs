@@ -55,6 +55,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
 
         public void Execute(IExecutionContext context, Command command)
         {
+            System.Diagnostics.Debugger.Launch();
             ArgUtil.NotNull(context, nameof(context));
             ArgUtil.NotNull(command, nameof(command));
             var data = command.Data;
@@ -278,9 +279,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
                 else {
                     var publisher = _executionContext.GetHostContext().GetService<ILegacyTestRunDataPublisher>();
                     publisher.InitializePublisher(_executionContext, teamProject, connection, _testRunner, _publishRunLevelAttachments);
-
+                    _executionContext.Error($"anand Inside legacy");
                     isTestRunOutcomeFailed = await publisher.PublishAsync(testRunContext, _testResultFiles, _runTitle, _executionContext.Variables.Build_BuildId, _mergeResults);
                 }
+                _executionContext.Error($"anand testRunoutcome is: {isTestRunOutcomeFailed}");
 
                 if (isTestRunOutcomeFailed && _failTaskOnFailedTests)
                 {

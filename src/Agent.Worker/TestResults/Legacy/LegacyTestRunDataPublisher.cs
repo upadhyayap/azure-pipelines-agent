@@ -3,18 +3,16 @@
 
 using Microsoft.TeamFoundation.TestManagement.WebApi;
 using Microsoft.VisualStudio.Services.Agent.Util;
+using Microsoft.VisualStudio.Services.Agent.Worker.TestResults;
+using Microsoft.VisualStudio.Services.Agent.Worker.TestResults.Utils;
+using Microsoft.VisualStudio.Services.WebApi;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.VisualStudio.Services.WebApi;
-using Microsoft.TeamFoundation.DistributedTask.WebApi;
-using Microsoft.VisualStudio.Services.Agent.Worker.Telemetry;
-using Microsoft.VisualStudio.Services.WebPlatform;
 using TestRunContext = Microsoft.TeamFoundation.TestClient.PublishTestResults.TestRunContext;
-using Microsoft.VisualStudio.Services.Agent.Worker.TestResults.Utils;
 
 namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
 {
@@ -39,6 +37,8 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
         private IFeatureFlagService _featureFlagService;
         private bool _calculateTestRunSummary;
         private string _testRunner;
+        private ITestResultsServer _testResultsServer;
+        private TestRunDataPublisherHelper _testRunPublisherHelper;
 
         public void InitializePublisher(IExecutionContext context, string projectName, VssConnection connection, string testRunner, bool publishRunLevelAttachments)
         {
@@ -50,7 +50,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
             _testRunPublisher = HostContext.GetService<ITestRunPublisher>();
             _featureFlagService = HostContext.GetService<IFeatureFlagService>();
             _testRunPublisher.InitializePublisher(_executionContext, connection, projectName, _resultReader);
+            _testResultsServer = HostContext.GetService<ITestResultsServer>();
+            _testResultsServer.InitializeServer(connection, _executionContext);
             _calculateTestRunSummary = _featureFlagService.GetFeatureFlagState(TestResultsConstants.CalculateTestRunSummaryFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
+            _testRunPublisherHelper = new TestRunDataPublisherHelper(_executionContext, null, _testRunPublisher, _testResultsServer);
             Trace.Leaving();
         }
 
@@ -90,120 +93,141 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
             bool isTestRunOutcomeFailed = false;
             try
             {
-                //use local time since TestRunData defaults to local times
-                DateTime minStartDate = DateTime.MaxValue;
-                DateTime maxCompleteDate = DateTime.MinValue;
-                DateTime presentTime = DateTime.UtcNow;
-                bool dateFormatError = false;
-                TimeSpan totalTestCaseDuration = TimeSpan.Zero;
-                List<string> runAttachments = new List<string>();
-                List<TestCaseResultData> runResults = new List<TestCaseResultData>();
-                TestRunSummary testRunSummary = new TestRunSummary();
-                //read results from each file
-                foreach (string resultFile in resultFiles)
+                using (var connection = WorkerUtilities.GetVssConnection(_executionContext))
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    //test case results
-                    _executionContext.Debug(StringUtil.Format("Reading test results from file '{0}'", resultFile));
-                    TestRunData resultFileRunData = publisher.ReadResultsFromFile(runContext, resultFile);
-                    isTestRunOutcomeFailed = isTestRunOutcomeFailed || GetTestRunOutcome(resultFileRunData, testRunSummary);
-
-                    if (resultFileRunData != null)
+                    var featureFlagService = _executionContext.GetHostContext().GetService<IFeatureFlagService>();
+                    featureFlagService.InitializeFeatureService(_executionContext, connection);
+                    //use local time since TestRunData defaults to local times
+                    DateTime minStartDate = DateTime.MaxValue;
+                    DateTime maxCompleteDate = DateTime.MinValue;
+                    DateTime presentTime = DateTime.UtcNow;
+                    bool dateFormatError = false;
+                    TimeSpan totalTestCaseDuration = TimeSpan.Zero;
+                    List<string> runAttachments = new List<string>();
+                    List<TestCaseResultData> runResults = new List<TestCaseResultData>();
+                    TestRunSummary testRunSummary = new TestRunSummary();
+                    //read results from each file
+                    foreach (string resultFile in resultFiles)
                     {
-                        if (resultFileRunData.Results != null && resultFileRunData.Results.Length > 0)
+                        cancellationToken.ThrowIfCancellationRequested();
+                        //test case results
+                        _executionContext.Debug(StringUtil.Format("Reading test results from file '{0}'", resultFile));
+                        TestRunData resultFileRunData = publisher.ReadResultsFromFile(runContext, resultFile);
+                        isTestRunOutcomeFailed = isTestRunOutcomeFailed || GetTestRunOutcome(resultFileRunData, testRunSummary);
+
+                        if (resultFileRunData != null)
                         {
-                            try
+                            if (resultFileRunData.Results != null && resultFileRunData.Results.Length > 0)
                             {
-                                if (string.IsNullOrEmpty(resultFileRunData.StartDate) || string.IsNullOrEmpty(resultFileRunData.CompleteDate))
+                                try
                                 {
+                                    if (string.IsNullOrEmpty(resultFileRunData.StartDate) || string.IsNullOrEmpty(resultFileRunData.CompleteDate))
+                                    {
+                                        dateFormatError = true;
+                                    }
+
+                                    //As per discussion with Manoj(refer bug 565487): Test Run duration time should be minimum Start Time to maximum Completed Time when merging
+                                    if (!string.IsNullOrEmpty(resultFileRunData.StartDate))
+                                    {
+                                        DateTime startDate = DateTime.Parse(resultFileRunData.StartDate, null, DateTimeStyles.RoundtripKind);
+                                        minStartDate = minStartDate > startDate ? startDate : minStartDate;
+
+                                        if (!string.IsNullOrEmpty(resultFileRunData.CompleteDate))
+                                        {
+                                            DateTime endDate = DateTime.Parse(resultFileRunData.CompleteDate, null, DateTimeStyles.RoundtripKind);
+                                            maxCompleteDate = maxCompleteDate < endDate ? endDate : maxCompleteDate;
+                                        }
+                                    }
+                                }
+                                catch (FormatException)
+                                {
+                                    _executionContext.Warning(StringUtil.Loc("InvalidDateFormat", resultFile, resultFileRunData.StartDate, resultFileRunData.CompleteDate));
                                     dateFormatError = true;
                                 }
 
-                                //As per discussion with Manoj(refer bug 565487): Test Run duration time should be minimum Start Time to maximum Completed Time when merging
-                                if (!string.IsNullOrEmpty(resultFileRunData.StartDate))
+                                //continue to calculate duration as a fallback for case: if there is issue with format or dates are null or empty
+                                foreach (TestCaseResultData tcResult in resultFileRunData.Results)
                                 {
-                                    DateTime startDate = DateTime.Parse(resultFileRunData.StartDate, null, DateTimeStyles.RoundtripKind);
-                                    minStartDate = minStartDate > startDate ? startDate : minStartDate;
+                                    int durationInMs = Convert.ToInt32(tcResult.DurationInMs);
+                                    totalTestCaseDuration = totalTestCaseDuration.Add(TimeSpan.FromMilliseconds(durationInMs));
+                                }
 
-                                    if (!string.IsNullOrEmpty(resultFileRunData.CompleteDate))
-                                    {
-                                        DateTime endDate = DateTime.Parse(resultFileRunData.CompleteDate, null, DateTimeStyles.RoundtripKind);
-                                        maxCompleteDate = maxCompleteDate < endDate ? endDate : maxCompleteDate;
-                                    }
+                                runResults.AddRange(resultFileRunData.Results);
+
+                                //run attachments
+                                if (resultFileRunData.Attachments != null)
+                                {
+                                    runAttachments.AddRange(resultFileRunData.Attachments);
                                 }
                             }
-                            catch (FormatException)
+                            else
                             {
-                                _executionContext.Warning(StringUtil.Loc("InvalidDateFormat", resultFile, resultFileRunData.StartDate, resultFileRunData.CompleteDate));
-                                dateFormatError = true;
-                            }
-
-                            //continue to calculate duration as a fallback for case: if there is issue with format or dates are null or empty
-                            foreach (TestCaseResultData tcResult in resultFileRunData.Results)
-                            {
-                                int durationInMs = Convert.ToInt32(tcResult.DurationInMs);
-                                totalTestCaseDuration = totalTestCaseDuration.Add(TimeSpan.FromMilliseconds(durationInMs));
-                            }
-
-                            runResults.AddRange(resultFileRunData.Results);
-
-                            //run attachments
-                            if (resultFileRunData.Attachments != null)
-                            {
-                                runAttachments.AddRange(resultFileRunData.Attachments);
+                                _executionContext.Output(StringUtil.Loc("NoResultFound", resultFile));
                             }
                         }
                         else
                         {
-                            _executionContext.Output(StringUtil.Loc("NoResultFound", resultFile));
+                            _executionContext.Warning(StringUtil.Loc("InvalidResultFiles", resultFile, resultReader));
                         }
                     }
-                    else
+
+                    //publish run if there are results.
+                    if (runResults.Count > 0)
                     {
-                        _executionContext.Warning(StringUtil.Loc("InvalidResultFiles", resultFile, resultReader));
+                        string runName = string.IsNullOrWhiteSpace(runTitle)
+                        ? StringUtil.Format("{0}_TestResults_{1}", _resultReader.Name, buildId)
+                        : runTitle;
+
+                        if (DateTime.Compare(minStartDate, maxCompleteDate) > 0)
+                        {
+                            _executionContext.Warning(StringUtil.Loc("InvalidCompletedDate", maxCompleteDate, minStartDate));
+                            dateFormatError = true;
+                        }
+
+                        minStartDate = DateTime.Equals(minStartDate, DateTime.MaxValue) ? presentTime : minStartDate;
+                        maxCompleteDate = dateFormatError || DateTime.Equals(maxCompleteDate, DateTime.MinValue) ? minStartDate.Add(totalTestCaseDuration) : maxCompleteDate;
+
+                        // create test run
+                        TestRunData testRunData = new TestRunData(
+                            name: runName,
+                            startedDate: minStartDate.ToString("o"),
+                            completedDate: maxCompleteDate.ToString("o"),
+                            state: "InProgress",
+                            isAutomated: true,
+                            buildId: runContext != null ? runContext.BuildId : 0,
+                            buildFlavor: runContext != null ? runContext.Configuration : string.Empty,
+                            buildPlatform: runContext != null ? runContext.Platform : string.Empty,
+                            releaseUri: runContext != null ? runContext.ReleaseUri : null,
+                            releaseEnvironmentUri: runContext != null ? runContext.ReleaseEnvironmentUri : null
+                        );
+                        testRunData.PipelineReference = runContext.PipelineReference;
+                        testRunData.Attachments = runAttachments.ToArray();
+                        testRunData.AddCustomField(_testRunSystemCustomFieldName, runContext.TestRunSystem);
+                        AddTargetBranchInfoToRunCreateModel(testRunData, runContext.TargetBranchName);
+
+                        TestRun testRun = await publisher.StartTestRunAsync(testRunData, _executionContext.CancellationToken);
+                        await publisher.AddResultsAsync(testRun, runResults.ToArray(), _executionContext.CancellationToken);
+                        await publisher.EndTestRunAsync(testRunData, testRun.Id, true, _executionContext.CancellationToken);
+
+                        // Fallback to flaky aware if there are any failures.
+                        var doUseStateAPI = featureFlagService.GetFeatureFlagState(TestResultsConstants.UseStatAPIFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
+                        IList<TestRun> publishedRuns = new List<TestRun>();
+                        publishedRuns.Add(testRun);
+                        _executionContext.Error($"anand Initial testrunoutcome {isTestRunOutcomeFailed}");
+                        if (isTestRunOutcomeFailed && doUseStateAPI)
+                        {
+                            // If null is returned then fallback to previous value.
+                            var runOutcome = _testRunPublisherHelper.DoesRunsContainsFailures(publishedRuns);
+                            if (runOutcome != null && runOutcome.HasValue)
+                            {
+                                isTestRunOutcomeFailed = runOutcome.Value;
+                                _executionContext.Error($"anand after DoesRunsContainsFailures testrunoutcome is{isTestRunOutcomeFailed}");
+                            }
+                        }
                     }
+
+                    StoreTestRunSummaryInEnvVar(testRunSummary);
                 }
-
-                //publish run if there are results.
-                if (runResults.Count > 0)
-                {
-                    string runName = string.IsNullOrWhiteSpace(runTitle)
-                    ? StringUtil.Format("{0}_TestResults_{1}", _resultReader.Name, buildId)
-                    : runTitle;
-
-                    if (DateTime.Compare(minStartDate, maxCompleteDate) > 0)
-                    {
-                        _executionContext.Warning(StringUtil.Loc("InvalidCompletedDate", maxCompleteDate, minStartDate));
-                        dateFormatError = true;
-                    }
-
-                    minStartDate = DateTime.Equals(minStartDate, DateTime.MaxValue) ? presentTime : minStartDate;
-                    maxCompleteDate = dateFormatError || DateTime.Equals(maxCompleteDate, DateTime.MinValue) ? minStartDate.Add(totalTestCaseDuration) : maxCompleteDate;
-
-                    // create test run
-                    TestRunData testRunData = new TestRunData(
-                        name: runName,
-                        startedDate: minStartDate.ToString("o"),
-                        completedDate: maxCompleteDate.ToString("o"),
-                        state: "InProgress",
-                        isAutomated: true,
-                        buildId: runContext != null ? runContext.BuildId : 0,
-                        buildFlavor: runContext != null ? runContext.Configuration : string.Empty,
-                        buildPlatform: runContext != null ? runContext.Platform : string.Empty,
-                        releaseUri: runContext != null ? runContext.ReleaseUri : null,
-                        releaseEnvironmentUri: runContext != null ? runContext.ReleaseEnvironmentUri : null
-                    );
-                    testRunData.PipelineReference = runContext.PipelineReference;
-                    testRunData.Attachments = runAttachments.ToArray();
-                    testRunData.AddCustomField(_testRunSystemCustomFieldName, runContext.TestRunSystem);
-                    AddTargetBranchInfoToRunCreateModel(testRunData, runContext.TargetBranchName);
-
-                    TestRun testRun = await publisher.StartTestRunAsync(testRunData, _executionContext.CancellationToken);
-                    await publisher.AddResultsAsync(testRun, runResults.ToArray(), _executionContext.CancellationToken);
-                    await publisher.EndTestRunAsync(testRunData, testRun.Id, true, _executionContext.CancellationToken);
-                }
-
-                StoreTestRunSummaryInEnvVar(testRunSummary);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
@@ -236,11 +260,13 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
             bool isTestRunOutcomeFailed = false;
             try
             {
+                IList<TestRun> publishedRuns = new List<TestRun>();
+
                 var groupedFiles = resultFiles
-                    .Select((resultFile, index) => new { Index = index, file = resultFile })
-                    .GroupBy(pair => pair.Index / batchSize)
-                    .Select(bucket => bucket.Select(pair => pair.file).ToList())
-                    .ToList();
+                .Select((resultFile, index) => new { Index = index, file = resultFile })
+                .GroupBy(pair => pair.Index / batchSize)
+                .Select(bucket => bucket.Select(pair => pair.file).ToList())
+                .ToList();
 
                 bool changeTestRunTitle = resultFiles.Count > 1;
                 TestRunSummary testRunSummary = new TestRunSummary();
@@ -272,9 +298,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
                             {
                                 testRunData.AddCustomField(_testRunSystemCustomFieldName, runContext.TestRunSystem);
                                 AddTargetBranchInfoToRunCreateModel(testRunData, runContext.TargetBranchName);
-                                TestRun testRun = await publisher.StartTestRunAsync(testRunData, _executionContext.CancellationToken);
+                                TestRun testRun = await publisher.StartTestRunAsync(testRunData,                    _executionContext.CancellationToken);
                                 await publisher.AddResultsAsync(testRun, testRunData.Results, _executionContext.CancellationToken);
                                 await publisher.EndTestRunAsync(testRunData, testRun.Id, cancellationToken: _executionContext.CancellationToken);
+                                publishedRuns.Add(testRun);
                             }
                             else
                             {
@@ -289,7 +316,26 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
                     await Task.WhenAll(publishTasks);
                 }
 
-                StoreTestRunSummaryInEnvVar(testRunSummary);
+                // Fallback to flaky aware if there are any failures.
+                using (var connection = WorkerUtilities.GetVssConnection(_executionContext))
+                {
+                    var featureFlagService = _executionContext.GetHostContext().GetService<IFeatureFlagService>();
+                    featureFlagService.InitializeFeatureService(_executionContext, connection);
+
+                    var doUseStateAPI = featureFlagService.GetFeatureFlagState(TestResultsConstants.UseStatAPIFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
+
+                    if (isTestRunOutcomeFailed && doUseStateAPI)
+                    {
+                        // If null is returned then fallback to previous value.
+                        var runOutcome = _testRunPublisherHelper.DoesRunsContainsFailures(publishedRuns);
+                        if (runOutcome != null && runOutcome.HasValue)
+                        {
+                            isTestRunOutcomeFailed = runOutcome.Value;
+                        }
+                    }
+
+                    StoreTestRunSummaryInEnvVar(testRunSummary);
+                }
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
