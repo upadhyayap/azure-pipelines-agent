@@ -93,21 +93,10 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
 
                     // Check failed results for flaky aware
                     // Fallback to flaky aware if there are any failures.
-                    using (var connection = WorkerUtilities.GetVssConnection(_executionContext))
+                    var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
+                    if (runOutcome != null && runOutcome.HasValue)
                     {
-                        var featureFlagService = _executionContext.GetHostContext().GetService<IFeatureFlagService>();
-                        featureFlagService.InitializeFeatureService(_executionContext, connection);
-                        var doUseStateAPI = featureFlagService.GetFeatureFlagState(TestResultsConstants.UseStatAPIFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
-
-                        if (isTestRunOutcomeFailed && doUseStateAPI)
-                        {
-                            // If null is returned then fallback to previous value.
-                            var runOutcome = _testRunPublisherHelper.DoesRunsContainsFailures(publishedRuns, _projectName);
-                            if (runOutcome != null && runOutcome.HasValue)
-                            {
-                                isTestRunOutcomeFailed = runOutcome.Value;
-                            }
-                        }
+                        isTestRunOutcomeFailed = runOutcome.Value;
                     }
 
                     return isTestRunOutcomeFailed;

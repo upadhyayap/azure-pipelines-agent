@@ -25,6 +25,31 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
             _testResultsServer = testResultServer;
         }
 
+        protected internal virtual bool? CheckRunsForFlaky(IList<TestRun> runs, string projectName)
+        {
+            bool? runOutcome = null;
+            try
+            {
+                using (var connection = WorkerUtilities.GetVssConnection(_executionContext))
+                {
+                    var featureFlagService = _executionContext.GetHostContext().GetService<IFeatureFlagService>();
+                    featureFlagService.InitializeFeatureService(_executionContext, connection);
+                    var doUseStateAPI = featureFlagService.GetFeatureFlagState(TestResultsConstants.UseStatAPIFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
+
+                    // If null is returned then fallback to previous value.
+                    runOutcome = DoesRunsContainsFailures(runs, projectName);
+                }
+
+                return runOutcome;
+            }
+            catch (Exception ex)
+            {
+                // Exception in checking flaky will not fail the mainline pipeline
+                _executionContext.Warning("Failed to Check for Flaky : " + ex.ToString());
+                return null;
+            }
+        }
+
         protected internal virtual bool? DoesRunsContainsFailures(IList<TestRun> testRuns, string projectName)
         {
             dynamic _testRunPublisher = _libraryTestRunPublisher;

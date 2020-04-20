@@ -4,7 +4,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 
-namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
+namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults.Utils
 {
     /// <summary>
     /// This is a utitily class used for recording timing

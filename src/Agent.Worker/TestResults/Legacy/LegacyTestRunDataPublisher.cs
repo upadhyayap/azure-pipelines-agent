@@ -205,23 +205,14 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
                     await publisher.AddResultsAsync(testRun, runResults.ToArray(), _executionContext.CancellationToken);
                     await publisher.EndTestRunAsync(testRunData, testRun.Id, true, _executionContext.CancellationToken);
 
-                    using (var connection = WorkerUtilities.GetVssConnection(_executionContext))
+                    // Check failed results for flaky aware
+                    // Fallback to flaky aware if there are any failures.
+                    IList<TestRun> publishedRuns = new List<TestRun>();
+                    publishedRuns.Add(testRun);
+                    var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
+                    if (runOutcome != null && runOutcome.HasValue)
                     {
-                        var featureFlagService = _executionContext.GetHostContext().GetService<IFeatureFlagService>();
-                        featureFlagService.InitializeFeatureService(_executionContext, connection);
-                        // Fallback to flaky aware if there are any failures.
-                        var doUseStateAPI = featureFlagService.GetFeatureFlagState(TestResultsConstants.UseStatAPIFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
-                        IList<TestRun> publishedRuns = new List<TestRun>();
-                        publishedRuns.Add(testRun);
-                        if (isTestRunOutcomeFailed && doUseStateAPI)
-                        {
-                            // If null is returned then fallback to previous value.
-                            var runOutcome = _testRunPublisherHelper.DoesRunsContainsFailures(publishedRuns, _projectName);
-                            if (runOutcome != null && runOutcome.HasValue)
-                            {
-                                isTestRunOutcomeFailed = runOutcome.Value;
-                            }
-                        }
+                        isTestRunOutcomeFailed = runOutcome.Value;
                     }
 
                     StoreTestRunSummaryInEnvVar(testRunSummary);
@@ -314,26 +305,15 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
                     await Task.WhenAll(publishTasks);
                 }
 
+                // Check failed results for flaky aware
                 // Fallback to flaky aware if there are any failures.
-                using (var connection = WorkerUtilities.GetVssConnection(_executionContext))
+                var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
+                if (runOutcome != null && runOutcome.HasValue)
                 {
-                    var featureFlagService = _executionContext.GetHostContext().GetService<IFeatureFlagService>();
-                    featureFlagService.InitializeFeatureService(_executionContext, connection);
-
-                    var doUseStateAPI = featureFlagService.GetFeatureFlagState(TestResultsConstants.UseStatAPIFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
-
-                    if (isTestRunOutcomeFailed && doUseStateAPI)
-                    {
-                        // If null is returned then fallback to previous value.
-                        var runOutcome = _testRunPublisherHelper.DoesRunsContainsFailures(publishedRuns, _projectName);
-                        if (runOutcome != null && runOutcome.HasValue)
-                        {
-                            isTestRunOutcomeFailed = runOutcome.Value;
-                        }
-                    }
-
-                    StoreTestRunSummaryInEnvVar(testRunSummary);
+                    isTestRunOutcomeFailed = runOutcome.Value;
                 }
+
+                StoreTestRunSummaryInEnvVar(testRunSummary);
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
