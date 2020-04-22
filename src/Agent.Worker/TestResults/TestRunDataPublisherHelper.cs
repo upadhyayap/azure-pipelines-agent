@@ -45,7 +45,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
             catch (Exception ex)
             {
                 // Exception in checking flaky will not fail the mainline pipeline
-                _executionContext.Warning("Failed to Check for Flaky : " + ex.ToString());
+                _executionContext.Output("Failed to Check for Flaky : " + ex.ToString());
                 return null;
             }
         }
