@@ -207,13 +207,17 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
 
                     // Check failed results for flaky aware
                     // Fallback to flaky aware if there are any failures.
-                    IList<TestRun> publishedRuns = new List<TestRun>();
-                    publishedRuns.Add(testRun);
-                    var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
-                    if (runOutcome != null && runOutcome.HasValue)
+                    if (isTestRunOutcomeFailed)
                     {
-                        isTestRunOutcomeFailed = runOutcome.Value;
+                        IList<TestRun> publishedRuns = new List<TestRun>();
+                        publishedRuns.Add(testRun);
+                        var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
+                        if (runOutcome != null && runOutcome.HasValue)
+                        {
+                            isTestRunOutcomeFailed = runOutcome.Value;
+                        }
                     }
+                    
 
                     StoreTestRunSummaryInEnvVar(testRunSummary);
                 }
@@ -307,10 +311,13 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
 
                 // Check failed results for flaky aware
                 // Fallback to flaky aware if there are any failures.
-                var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
-                if (runOutcome != null && runOutcome.HasValue)
+                if (isTestRunOutcomeFailed)
                 {
-                    isTestRunOutcomeFailed = runOutcome.Value;
+                    var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
+                    if (runOutcome != null && runOutcome.HasValue)
+                    {
+                        isTestRunOutcomeFailed = runOutcome.Value;
+                    }
                 }
 
                 StoreTestRunSummaryInEnvVar(testRunSummary);

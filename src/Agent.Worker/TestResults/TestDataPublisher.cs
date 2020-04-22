@@ -93,10 +93,13 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
 
                     // Check failed results for flaky aware
                     // Fallback to flaky aware if there are any failures.
-                    var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
-                    if (runOutcome != null && runOutcome.HasValue)
+                    if (isTestRunOutcomeFailed)
                     {
-                        isTestRunOutcomeFailed = runOutcome.Value;
+                        var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
+                        if (runOutcome != null && runOutcome.HasValue)
+                        {
+                            isTestRunOutcomeFailed = runOutcome.Value;
+                        }
                     }
 
                     return isTestRunOutcomeFailed;
