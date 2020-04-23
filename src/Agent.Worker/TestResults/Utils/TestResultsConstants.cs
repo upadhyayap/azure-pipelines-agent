@@ -19,5 +19,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults.Utils
 
         public static readonly string UseNewRunSummaryAPIFeatureFlag = "TestManagement.Server.UseNewRunSummaryAPIForPublishTestResultsTask";
 
+        public const string EnableFlakyCheckInAgentFeatureFlag = "TestManagement.Agent.PTR.EnableFlakyCheck";
     }
 }

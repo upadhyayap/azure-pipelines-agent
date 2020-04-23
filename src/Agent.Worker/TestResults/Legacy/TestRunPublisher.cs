@@ -24,7 +24,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
         void InitializePublisher(IExecutionContext executionContext, VssConnection connection, string projectName, IResultReader resultReader);
         Task<TestRun> StartTestRunAsync(TestRunData testRunData, CancellationToken cancellationToken = default(CancellationToken));
         Task AddResultsAsync(TestRun testRun, TestCaseResultData[] testResults, CancellationToken cancellationToken = default(CancellationToken));
-        Task EndTestRunAsync(TestRunData testRunData, int testRunId, bool publishAttachmentsAsArchive = false, CancellationToken cancellationToken = default(CancellationToken));
+        Task<TestRun> EndTestRunAsync(TestRunData testRunData, int testRunId, bool publishAttachmentsAsArchive = false, CancellationToken cancellationToken = default(CancellationToken));
         TestRunData ReadResultsFromFile(TestRunContext runContext, string filePath, string runName);
         TestRunData ReadResultsFromFile(TestRunContext runContext, string filePath);
         /// <summary>
@@ -148,7 +148,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
         public async Task<TestRun> StartTestRunAsync(TestRunData testRunData, CancellationToken cancellationToken)
         {
             Trace.Entering();
-
             var testRun = await _testResultsServer.CreateTestRunAsync(_projectName, testRunData, cancellationToken);
             Trace.Leaving();
             return testRun;
@@ -157,7 +156,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
         /// <summary>
         /// Mark the test run as completed
         /// </summary>
-        public async Task EndTestRunAsync(TestRunData testRunData, int testRunId, bool publishAttachmentsAsArchive = false, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<TestRun> EndTestRunAsync(TestRunData testRunData, int testRunId, bool publishAttachmentsAsArchive = false, CancellationToken cancellationToken = default(CancellationToken))
         {
             ArgUtil.NotNull(testRunData, nameof(testRunData));
             Trace.Entering();
@@ -181,6 +180,8 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
             }
 
             _executionContext.Output(string.Format(CultureInfo.CurrentCulture, "Published Test Run : {0}", testRun.WebAccessUrl));
+
+            return testRun;
         }
 
         /// <summary>

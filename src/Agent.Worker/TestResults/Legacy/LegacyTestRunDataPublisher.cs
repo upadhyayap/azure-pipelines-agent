@@ -203,14 +203,16 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
 
                     TestRun testRun = await publisher.StartTestRunAsync(testRunData, _executionContext.CancellationToken);
                     await publisher.AddResultsAsync(testRun, runResults.ToArray(), _executionContext.CancellationToken);
-                    await publisher.EndTestRunAsync(testRunData, testRun.Id, true, _executionContext.CancellationToken);
+                    TestRun updatedRun = await publisher.EndTestRunAsync(testRunData, testRun.Id, true, _executionContext.CancellationToken);
 
                     // Check failed results for flaky aware
                     // Fallback to flaky aware if there are any failures.
-                    if (isTestRunOutcomeFailed)
+                    bool isFlakyCheckEnabled = _featureFlagService.GetFeatureFlagState(TestResultsConstants.EnableFlakyCheckInAgentFeatureFlag, TestResultsConstants.TCMServiceInstanceGuid);
+
+                    if (isTestRunOutcomeFailed && isFlakyCheckEnabled)
                     {
                         IList<TestRun> publishedRuns = new List<TestRun>();
-                        publishedRuns.Add(testRun);
+                        publishedRuns.Add(updatedRun);
                         var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
                         if (runOutcome != null && runOutcome.HasValue)
                         {
@@ -218,7 +220,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
                         }
                     }
                     
-
                     StoreTestRunSummaryInEnvVar(testRunSummary);
                 }
             }
@@ -254,7 +255,6 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
             try
             {
                 IList<TestRun> publishedRuns = new List<TestRun>();
-
                 var groupedFiles = resultFiles
                 .Select((resultFile, index) => new { Index = index, file = resultFile })
                 .GroupBy(pair => pair.Index / batchSize)
@@ -293,8 +293,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
                                 AddTargetBranchInfoToRunCreateModel(testRunData, runContext.TargetBranchName);
                                 TestRun testRun = await publisher.StartTestRunAsync(testRunData,                   _executionContext.CancellationToken);
                                 await publisher.AddResultsAsync(testRun, testRunData.Results, _executionContext.CancellationToken);
-                                await publisher.EndTestRunAsync(testRunData, testRun.Id, cancellationToken: _executionContext.CancellationToken);
-                                publishedRuns.Add(testRun);
+                                TestRun updatedRun = await publisher.EndTestRunAsync(testRunData, testRun.Id, cancellationToken: _executionContext.CancellationToken);
+                                
+                                publishedRuns.Add(updatedRun);
                             }
                             else
                             {
@@ -311,7 +312,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
 
                 // Check failed results for flaky aware
                 // Fallback to flaky aware if there are any failures.
-                if (isTestRunOutcomeFailed)
+                bool isFlakyCheckEnabled = _featureFlagService.GetFeatureFlagState(TestResultsConstants.EnableFlakyCheckInAgentFeatureFlag, TestResultsConstants.TCMServiceInstanceGuid);
+
+                if (isTestRunOutcomeFailed && isFlakyCheckEnabled)
                 {
                     var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
                     if (runOutcome != null && runOutcome.HasValue)

@@ -93,7 +93,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
 
                     // Check failed results for flaky aware
                     // Fallback to flaky aware if there are any failures.
-                    if (isTestRunOutcomeFailed)
+                    bool isFlakyCheckEnabled = _featureFlagService.GetFeatureFlagState(TestResultsConstants.EnableFlakyCheckInAgentFeatureFlag, TestResultsConstants.TCMServiceInstanceGuid);
+
+                    if (isTestRunOutcomeFailed && isFlakyCheckEnabled)
                     {
                         var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
                         if (runOutcome != null && runOutcome.HasValue)
