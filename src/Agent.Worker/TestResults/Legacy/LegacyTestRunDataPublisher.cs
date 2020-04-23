@@ -207,9 +207,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
 
                     // Check failed results for flaky aware
                     // Fallback to flaky aware if there are any failures.
-                    bool IsFlakyCheckEnabled = _featureFlagService.GetFeatureFlagState(TestResultsConstants.CheckForFlakyTestsInAgentFeatureFlag, TestResultsConstants.TCMServiceInstanceGuid);
-
-                    if (isTestRunOutcomeFailed && IsFlakyCheckEnabled)
+                    if (isTestRunOutcomeFailed)
                     {
                         IList<TestRun> publishedRuns = new List<TestRun>();
                         publishedRuns.Add(testRun);
@@ -313,9 +311,7 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.LegacyTestResults
 
                 // Check failed results for flaky aware
                 // Fallback to flaky aware if there are any failures.
-                bool IsFlakyCheckEnabled = _featureFlagService.GetFeatureFlagState(TestResultsConstants.CheckForFlakyTestsInAgentFeatureFlag, TestResultsConstants.TCMServiceInstanceGuid);
-
-                if (isTestRunOutcomeFailed && IsFlakyCheckEnabled)
+                if (isTestRunOutcomeFailed)
                 {
                     var runOutcome = _testRunPublisherHelper.CheckRunsForFlaky(publishedRuns, _projectName);
                     if (runOutcome != null && runOutcome.HasValue)
