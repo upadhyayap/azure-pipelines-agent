@@ -27,18 +27,9 @@ namespace Microsoft.VisualStudio.Services.Agent.Worker.TestResults
 
         protected internal virtual bool? CheckRunsForFlaky(IList<TestRun> runs, string projectName)
         {
-            bool? runOutcome = null;
             try
             {
-                using (var connection = WorkerUtilities.GetVssConnection(_executionContext))
-                {
-                    var featureFlagService = _executionContext.GetHostContext().GetService<IFeatureFlagService>();
-                    featureFlagService.InitializeFeatureService(_executionContext, connection);
-                    var doUseStateAPI = featureFlagService.GetFeatureFlagState(TestResultsConstants.UseStatAPIFeatureFlag, TestResultsConstants.TFSServiceInstanceGuid);
-
-                    // If null is returned then fallback to previous value.
-                    runOutcome = DoesRunsContainsFailures(runs, projectName);
-                }
+                bool? runOutcome = DoesRunsContainsFailures(runs, projectName);
 
                 return runOutcome;
             }
